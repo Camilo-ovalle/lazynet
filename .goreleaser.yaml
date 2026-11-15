@@ -1,0 +1,67 @@
+# GoReleaser v2 — builds static binaries, tarballs, .deb/.rpm packages and
+# the GitHub release. The APT repository is published by release.yml.
+version: 2
+project_name: lazynet
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+    - sh -c 'mkdir -p completions && for sh in bash zsh fish; do go run ./cmd/lazynet completion $sh > completions/lazynet.$sh; done'
+
+builds:
+  - id: lazynet
+    main: ./cmd/lazynet
+    binary: lazynet
+    env:
+      - CGO_ENABLED=0 # fully static: no runtime dependencies at all
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Version={{ .Version }}
+      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Commit={{ .ShortCommit }}
+      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Date={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - README.es.md
+      - completions/*
+
+checksum:
+  name_template: checksums.txt
+
+nfpms:
+  - id: packages
+    package_name: lazynet
+    vendor: lazynet
+    homepage: https://github.com/Camilo-ovalle/Lazy_Net
+    maintainer: Camilo Ovalle <noreply@github.com>
+    description: |-
+      Lazy terminal UI and CLI for Cisco Catalyst, Nexus and ASA.
+      Read-only by default; VLAN changes always require confirmation.
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    section: net
+    priority: optional
+    contents:
+      - src: completions/lazynet.bash
+        dst: /usr/share/bash-completion/completions/lazynet
+      - src: completions/lazynet.zsh
+        dst: /usr/share/zsh/vendor-completions/_lazynet
+      - src: completions/lazynet.fish
+        dst: /usr/share/fish/vendor_completions.d/lazynet.fish
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^ci:"]
+
+release:
+  github:
+    owner: Camilo-ovalle
+    name: Lazy_Net

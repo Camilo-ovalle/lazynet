@@ -1,0 +1,68 @@
+package transport
+
+import (
+	"errors"
+	"testing"
+)
+
+func TestCheckReadOnly(t *testing.T) {
+	allowed := []string{
+		"show version",
+		"show  running-config",
+		"show interfaces GigabitEthernet1/0/1 switchport",
+		"show version | include Software|NX-OS",
+		"show logging | begin Log Buffer",
+		"terminal length 0",
+		"terminal pager 0",
+		"terminal width 511",
+		"SHOW VERSION",
+	}
+	for _, c := range allowed {
+		if err := CheckReadOnly(c); err != nil {
+			t.Errorf("CheckReadOnly(%q) = %v; want allowed", c, err)
+		}
+	}
+	denied := []string{
+		"configure terminal",
+		"reload",
+		"write memory",
+		"copy running-config startup-config",
+		"show version\nreload",
+		"show version\rreload",
+		"show run | redirect flash:x.cfg",
+		"show run | tee bootflash:x",
+		"show run | append flash:x",
+		"show run > bootflash:x",
+		"terminal monitor",
+		"clear counters",
+		"debug ip packet",
+		"sh run",
+		"",
+	}
+	for _, c := range denied {
+		if err := CheckReadOnly(c); !errors.Is(err, ErrNotReadOnly) {
+			t.Errorf("CheckReadOnly(%q) = %v; want ErrNotReadOnly", c, err)
+		}
+	}
+}
+
+func TestChangeRequestConfirm(t *testing.T) {
+	cr := NewConfigChange("interface GigabitEthernet1/0/1", "switchport access vlan 110")
+	want := []string{"configure terminal", "interface GigabitEthernet1/0/1", "switchport access vlan 110", "end"}
+	if got := cr.Display(); len(got) != 4 || got[0] != want[0] || got[3] != want[3] {
+		t.Fatalf("Display() = %v", got)
+	}
+	if cr.Confirm([]string{"configure terminal", "interface GigabitEthernet1/0/2", "switchport access vlan 110", "end"}) {
+		t.Fatal("confirm must fail when shown commands differ")
+	}
+	if cr.Confirmed() {
+		t.Fatal("must stay unconfirmed")
+	}
+	if !cr.Confirm(want) || !cr.Confirmed() {
+		t.Fatal("confirm with exact display should succeed")
+	}
+	wr := NewExecChange("write memory")
+	if d := wr.Display(); len(d) != 1 || d[0] != "write memory" {
+		t.Fatalf("exec display = %v", d)
+	}
+}

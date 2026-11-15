@@ -1,0 +1,36 @@
+
+Cisco Adaptive Security Appliance Software Version 9.16(4)19
+SSP Operating System Version 2.10(1.211)
+Device Manager Version 7.18(1)
+
+Compiled on Wed 14-Jun-23 13:29 GMT by builders
+System image file is "disk0:/asa9-16-4-19-smp-k8.bin"
+Config file at boot was "startup-config"
+
+{{HOST}} up 41 days 7 hours
+failover cluster up 41 days 7 hours
+
+Hardware:   ASA5516, 8192 MB RAM, CPU Atom C2000 series 2416 MHz, 1 CPU (8 cores)
+Internal ATA Compact Flash, 8192MB
+BIOS Flash M25P64 @ 0xfed01000, 16384KB
+
+Encryption hardware device : Cisco ASA Crypto on-board accelerator (revision 0x1)
+                             Number of accelerators: 1
+
+ 1: Ext: GigabitEthernet1/1  : address is 00a3.8e4b.1c01, irq 255
+ 2: Ext: GigabitEthernet1/2  : address is 00a3.8e4b.1c02, irq 255
+ 3: Ext: GigabitEthernet1/3  : address is 00a3.8e4b.1c03, irq 255
+ 9: Int: Internal-Data1/1    : address is 00a3.8e4b.1c00, irq 0
+10: Int: Internal-Data1/2    : address is 0000.0001.0002, irq 0
+11: Ext: Management1/1       : address is 00a3.8e4b.1c00, irq 0
+
+Licensed features for this platform:
+Maximum Physical Interfaces       : Unlimited      perpetual
+Maximum VLANs                     : 150            perpetual
+
+Serial Number: JAD21430ABC
+Running Permanent Activation Key: 0x00000000 0x00000000 0x00000000 0x00000000 0x00000000
+Configuration register is 0x1
+Image type          : Release
+Key Version         : A
+Configuration last modified by enable_15 at 09:12:44.123 UTC Mon Nov 9 2026

@@ -1,0 +1,51 @@
+Building configuration...
+
+Current configuration : 2154 bytes
+!
+! Last configuration change at 09:12:44 UTC Mon Nov 9 2026 by admin
+!
+version 17.9
+service timestamps debug datetime msec
+service timestamps log datetime msec year
+service password-encryption
+!
+hostname {{HOST}}
+!
+vrf definition Mgmt-vrf
+ address-family ipv4
+ exit-address-family
+!
+logging buffered 64000
+aaa new-model
+!
+clock timezone UTC 0 0
+!
+ip domain name lab.local
+!
+spanning-tree mode rapid-pvst
+!
+vlan 10
+ name DATA
+vlan 20
+ name VOICE
+vlan 110
+ name PRINTERS
+vlan 999
+ name PARKING
+!
+{{INTERFACES}}!
+interface Vlan1
+ no ip address
+ shutdown
+!
+interface Vlan10
+ ip address 192.168.100.100 255.255.255.0
+!
+ip ssh version 2
+!
+line con 0
+ stopbits 1
+line vty 0 15
+ transport input ssh
+!
+end

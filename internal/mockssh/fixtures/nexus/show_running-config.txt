@@ -1,0 +1,38 @@
+
+!Command: show running-config
+!Running configuration last done at: Mon Nov  9 09:12:44 2026
+!Time: {{NOW}}
+
+version 10.2(6) Bios:version 05.47
+hostname {{HOST}}
+vdc {{HOST}} id 1
+  limit-resource vlan minimum 16 maximum 4094
+
+feature lacp
+feature lldp
+feature vpc
+
+logging logfile messages 6 size 4194304
+logging timestamp milliseconds
+
+vlan 1,10,20,110
+vlan 10
+  name DATA
+vlan 20
+  name VOICE
+
+vrf context management
+  ip route 0.0.0.0/0 192.168.100.254
+
+interface Ethernet1/1
+  description uplink-core
+  switchport mode trunk
+
+interface Ethernet1/2
+  switchport access vlan 10
+
+interface mgmt0
+  vrf member management
+  ip address 192.168.100.20/24
+line console
+line vty

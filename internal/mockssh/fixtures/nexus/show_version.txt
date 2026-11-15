@@ -1,0 +1,33 @@
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Documents: http://www.cisco.com/en/US/products/ps9372/tsd_products_support_series_home.html
+Copyright (c) 2002-2023, Cisco Systems, Inc. All rights reserved.
+The copyrights to certain works contained herein are owned by
+other third parties and are used and distributed under license.
+
+Software
+  BIOS: version 05.47
+  NXOS: version 10.2(6) [Maintenance Release]
+  BIOS compile time:  04/28/2022
+  NXOS image file is: bootflash:///nxos64-cs.10.2.6.M.bin
+  NXOS compile time:  8/31/2023 12:00:00 [09/01/2023 04:01:20]
+
+
+Hardware
+  cisco Nexus9000 C93180YC-FX Chassis
+  Intel(R) Xeon(R) CPU D-1526 @ 1.80GHz with 24569036 kB of memory.
+  Processor Board ID FDO24351XYZ
+  Device name: {{HOST}}
+  bootflash: 115805708 kB
+
+Kernel uptime is 187 day(s), 6 hour(s), 12 minute(s), 33 second(s)
+
+Last reset at 233901 usecs after Sat May 9 10:11:12 2026
+  Reason: Reset Requested by CLI command reload
+  System version: 10.2(5)
+  Service:
+
+plugin
+  Core Plugin, Ethernet Plugin
+
+Active Package(s):

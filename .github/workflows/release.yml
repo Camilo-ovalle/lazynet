@@ -1,0 +1,87 @@
+# Push a tag like v0.1.0 to publish a release:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Required repository secrets for the APT repository:
+#   APT_GPG_PRIVATE_KEY  ASCII-armored private key used to sign the repo
+#   APT_GPG_PASSPHRASE   its passphrase (may be empty)
+# and GitHub Pages enabled on the gh-pages branch.
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs
+          path: dist/*.deb
+
+  apt-repo:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out gh-pages (keeps previous versions)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: repo
+        continue-on-error: true # first release: branch does not exist yet
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+          path: debs
+      - name: Build and sign the APT repository
+        env:
+          GPG_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+          GPG_PASS: ${{ secrets.APT_GPG_PASSPHRASE }}
+        run: |
+          set -eu
+          sudo apt-get update -qq && sudo apt-get install -y -qq apt-utils gnupg
+          mkdir -p repo/pool/main/l/lazynet
+          cp debs/*.deb repo/pool/main/l/lazynet/
+          cd repo
+          for arch in amd64 arm64; do
+            mkdir -p dists/stable/main/binary-$arch
+            apt-ftparchive --arch $arch packages pool > dists/stable/main/binary-$arch/Packages
+            gzip -9kf dists/stable/main/binary-$arch/Packages
+          done
+          apt-ftparchive \
+            -o APT::FTPArchive::Release::Origin=lazynet \
+            -o APT::FTPArchive::Release::Label=lazynet \
+            -o APT::FTPArchive::Release::Suite=stable \
+            -o APT::FTPArchive::Release::Codename=stable \
+            -o APT::FTPArchive::Release::Architectures="amd64 arm64" \
+            -o APT::FTPArchive::Release::Components=main \
+            release dists/stable > dists/stable/Release
+          echo "$GPG_KEY" | gpg --batch --import
+          KEYID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5; exit}')
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASS" -u "$KEYID" -abs -o dists/stable/Release.gpg dists/stable/Release
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASS" -u "$KEYID" --clearsign -o dists/stable/InRelease dists/stable/Release
+          gpg --export "$KEYID" > lazynet.gpg
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: repo
+          publish_branch: gh-pages
+          keep_files: true
+          exclude_assets: ".git"

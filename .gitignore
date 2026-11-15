@@ -1,0 +1,6 @@
+*.out
+*.test
+/completions/
+/dist/
+/lazynet
+coverage.*

@@ -20,14 +20,16 @@ builds:
     flags: [-trimpath]
     ldflags:
       - -s -w
-      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Version={{ .Version }}
-      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Commit={{ .ShortCommit }}
-      - -X github.com/Camilo-ovalle/Lazy_Net/internal/cli.Date={{ .Date }}
+      - -X github.com/Camilo-ovalle/lazynet/internal/cli.Version={{ .Version }}
+      - -X github.com/Camilo-ovalle/lazynet/internal/cli.Commit={{ .ShortCommit }}
+      - -X github.com/Camilo-ovalle/lazynet/internal/cli.Date={{ .Date }}
 
 archives:
   - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
+      - LICENSE
+      - NOTICE
       - README.md
       - README.es.md
       - completions/*
@@ -38,9 +40,10 @@ checksum:
 nfpms:
   - id: packages
     package_name: lazynet
-    vendor: lazynet
-    homepage: https://github.com/Camilo-ovalle/Lazy_Net
-    maintainer: Camilo Ovalle <noreply@github.com>
+    vendor: Camilo Enrique Ovalle Ceron
+    homepage: https://github.com/Camilo-ovalle/lazynet
+    maintainer: Camilo Enrique Ovalle Ceron <noreply@github.com>
+    license: Apache-2.0
     description: |-
       Lazy terminal UI and CLI for Cisco Catalyst, Nexus and ASA.
       Read-only by default; VLAN changes always require confirmation.
@@ -55,6 +58,10 @@ nfpms:
         dst: /usr/share/zsh/vendor-completions/_lazynet
       - src: completions/lazynet.fish
         dst: /usr/share/fish/vendor_completions.d/lazynet.fish
+      - src: LICENSE
+        dst: /usr/share/doc/lazynet/LICENSE
+      - src: NOTICE
+        dst: /usr/share/doc/lazynet/NOTICE
 
 changelog:
   sort: asc
@@ -64,4 +71,4 @@ changelog:
 release:
   github:
     owner: Camilo-ovalle
-    name: Lazy_Net
+    name: lazynet

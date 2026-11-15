@@ -1,5 +1,5 @@
 BIN := lazynet
-PKG := github.com/Camilo-ovalle/Lazy_Net/internal/cli
+PKG := github.com/Camilo-ovalle/lazynet/internal/cli
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(shell git rev-parse --short HEAD 2>/dev/null) -X $(PKG).Date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 

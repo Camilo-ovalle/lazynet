@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package device
 
 import (
@@ -6,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/parse"
 )
 
 // Shower runs read-only commands (implemented by *transport.Conn, which

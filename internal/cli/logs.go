@@ -1,15 +1,18 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package cli
 
 import (
 	"fmt"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/render"
+	"github.com/Camilo-ovalle/lazynet/internal/render"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/parse"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/theme"
+	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/spf13/cobra"
 )
 

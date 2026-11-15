@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package backup stores running-config snapshots in a local git repository
 // (pure Go, no git binary needed) so every backup is versioned and diffable.
 package backup

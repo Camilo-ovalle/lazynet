@@ -87,6 +87,19 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 - TUI tests (`internal/tui/tui_test.go`) drive the model synchronously through a harness. Commands slower than 400 ms are treated as timers and dropped. Keep cursors static and avoid real timers so the suite stays fast (about 0.6 s).
 - `LAZYNET_SNAPSHOT=1 go test ./internal/tui -run TestTUIBrowse -v` prints a rendered screen.
 
+## Licensing and authorship
+
+- lazynet is a personal project of Camilo Enrique Ovalle Ceron, built on his own equipment and time. Keep it that way: never add employer data, configurations, hostnames, IPs or serials. Sanitize every fixture.
+- Every source file starts with this header (`#` comments in shell scripts):
+
+  ```go
+  // Copyright 2026 Camilo Enrique Ovalle Ceron
+  // SPDX-License-Identifier: Apache-2.0
+  ```
+
+  Keep a blank line between the header and `//go:build` or the package doc comment, so the header doesn't become package documentation.
+- `NOTICE` must ship with every distribution (archives and packages already include it).
+
 ## Gotchas
 
 - Bubble Tea `View()` has a value receiver, so state mutated there is lost. Compute layout and geometry in `Update` (see `ensureVisible`, `tabRanges`).
@@ -105,8 +118,8 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 ## Status and open items (as of 2026-11-15)
 
 - The MVP is complete. No release has been tagged yet; GoReleaser and the APT workflow have never run. The APT workflow needs the `APT_GPG_PRIVATE_KEY` and `APT_GPG_PASSPHRASE` secrets.
-- No license has been chosen yet.
-- Possible rename of the repository to `lazynet` before the first release. That would change the module path, which is currently `github.com/Camilo-ovalle/Lazy_Net`.
+- Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
+- The repository is still private. It must be public before `go install`, the install script and the APT repository can work for anyone else.
 - No tests on real devices yet. The Catalyst model and OS version are still unknown; the maintainer will share them.
 - Lab plan: CML-Free on VMware Workstation (Windows host, WSL2 dev environment), with an IOL-L2 (IOS XE 17.18) switch. Its ports are named `Ethernet0/x`, so use `-p e0/1`.
   - VMware NAT network (VMnet8): `192.168.172.0/24`, gateway `.2`.

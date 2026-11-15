@@ -1,8 +1,11 @@
 #!/bin/sh
+# Copyright 2026 Camilo Enrique Ovalle Ceron
+# SPDX-License-Identifier: Apache-2.0
+#
 # lazynet installer — downloads the latest release binary for your CPU,
 # verifies its SHA-256 checksum and installs it. No other dependencies.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/Lazy_Net/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
 #
 # Environment overrides:
 #   LAZYNET_VERSION      version to install (e.g. 0.1.0), default: latest
@@ -10,7 +13,7 @@
 #   LAZYNET_BASE_URL     download mirror (expects GitHub release layout)
 set -eu
 
-REPO="Camilo-ovalle/Lazy_Net"
+REPO="Camilo-ovalle/lazynet"
 BASE_URL="${LAZYNET_BASE_URL:-https://github.com/$REPO/releases}"
 
 say() { printf '%s\n' "$*"; }

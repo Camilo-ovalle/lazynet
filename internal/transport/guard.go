@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package transport owns the SSH session to a device and enforces lazynet's
 // core safety rule in code: only read-only commands can be sent, except for
 // change requests the user has explicitly confirmed.

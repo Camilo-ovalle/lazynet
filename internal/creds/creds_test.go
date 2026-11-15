@@ -64,8 +64,14 @@ func TestZeroTTLNeverTouchesStore(t *testing.T) {
 func TestOSKeyring(t *testing.T) {
 	s := osStore()
 	if s == nil {
-		t.Skip("no OS keyring available")
+		t.Skip("no usable OS keyring")
 	}
+	checkStore(t, s)
+}
+
+// checkStore exercises put, get, delete and the kernel-enforced expiry.
+func checkStore(t *testing.T, s Store) {
+	t.Helper()
 	k := fmt.Sprintf("lazynet-test:%d", os.Getpid())
 	if err := s.Put(k, "s3cret", 2*time.Second); err != nil {
 		t.Fatal(err)

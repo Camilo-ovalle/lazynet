@@ -80,7 +80,7 @@ main() {
   if [ -z "$dir" ]; then
     if [ -w /usr/local/bin ]; then
       dir=/usr/local/bin
-    elif command -v sudo >/dev/null 2>&1 && [ -t 0 -o -t 1 ]; then
+    elif command -v sudo >/dev/null 2>&1 && { [ -t 0 ] || [ -t 1 ]; }; then
       dir=/usr/local/bin
       sudo="sudo"
       say "Installing to /usr/local/bin (sudo may ask for your password)..."

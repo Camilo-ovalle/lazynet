@@ -1,22 +1,128 @@
-# lazynet
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/lazynet-lockup-dark-transparent.svg">
+    <img src="assets/lazynet-lockup-light-transparent.svg" alt="lazynet" width="420">
+  </picture>
+</p>
 
-Una TUI y CLI "lazy" para equipos Cisco **Catalyst** (IOS / IOS-XE), **Nexus** (NX-OS) y **ASA**,
-inspirada en lazygit y lazydocker.
+<p align="center">
+  <b>Una TUI y CLI para Cisco Catalyst, Nexus y ASA.</b><br>
+  Consulta equipos, revisa logs, respalda configuraciones y cambia VLANs de acceso con seguridad, desde una sola terminal.
+</p>
 
-*[Read in English](README.md)*
+<p align="center">
+  <a href="https://github.com/Camilo-ovalle/Lazy_Net/actions/workflows/ci.yml"><img src="https://github.com/Camilo-ovalle/Lazy_Net/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Camilo-ovalle/Lazy_Net/releases"><img src="https://img.shields.io/github/v/release/Camilo-ovalle/Lazy_Net?include_prereleases&sort=semver" alt="Release"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/Camilo-ovalle/Lazy_Net" alt="Versión de Go">
+  <img src="https://img.shields.io/badge/platform-linux-informational" alt="Plataforma: Linux">
+</p>
 
-- **Dos formas de trabajar:** `lazynet` abre una interfaz interactiva (teclado + mouse), y los subcomandos sirven para tareas rápidas y scripts.
-- **Solo lectura por defecto:** todo usa comandos `show`, y el código lo garantiza. El único cambio posible es el cambio de VLAN de acceso, que siempre muestra los comandos exactos y pide confirmación.
-- **Detección automática** de Catalyst, Nexus o ASA.
-- **Sin dependencias:** un único binario estático, con SSH, git (para los backups) y keyring integrados.
+<p align="center">
+  <a href="#instalación">Instalación</a> ·
+  <a href="#primeros-pasos">Primeros pasos</a> ·
+  <a href="#uso">Uso</a> ·
+  <a href="#modelo-de-seguridad">Seguridad</a> ·
+  <a href="#configuración">Configuración</a> ·
+  <a href="README.md">English</a>
+</p>
+
+<p align="center">
+  <img src="assets/lazynet-mockup-terminal.png" alt="TUI de lazynet mostrando la información de un Catalyst 9300" width="860">
+</p>
+
+## ¿Por qué lazynet?
+
+Responder "¿en qué VLAN está ese puerto?" o "¿qué pasó anoche en este switch?" suele implicar varios pasos:
+- abrir una sesión SSH;
+- recordar el comando `show` correcto para esa plataforma;
+- buscar en la salida y copiar los valores a un ticket.
+
+Cambiar una VLAN de acceso suma además el riesgo de equivocarse en modo de configuración.
+
+lazynet pone esas tareas del día a día detrás de una interfaz rápida, manejable con teclado y mouse, en la línea de [lazygit](https://github.com/jesseduffield/lazygit) y [lazydocker](https://github.com/jesseduffield/lazydocker). Es **de solo lectura por diseño**. El único cambio que puede hacer es el de VLAN de acceso, y en ese caso:
+1. valida el puerto y la VLAN;
+2. te muestra los comandos exactos;
+3. espera tu confirmación;
+4. verifica el resultado en el equipo;
+5. registra todo en un log de auditoría.
+
+## Contenido
+
+- [Funcionalidades](#funcionalidades)
+- [Plataformas soportadas](#plataformas-soportadas)
+- [Instalación](#instalación)
+- [Primeros pasos](#primeros-pasos)
+- [Uso](#uso)
+  - [Línea de comandos](#línea-de-comandos)
+  - [Interfaz de terminal](#interfaz-de-terminal)
+- [Modelo de seguridad](#modelo-de-seguridad)
+- [Configuración](#configuración)
+- [Solución de problemas](#solución-de-problemas)
+- [Desarrollo](#desarrollo)
+- [Hoja de ruta](#hoja-de-ruta)
+- [Agradecimientos](#agradecimientos)
+- [Licencia](#licencia)
+
+## Funcionalidades
+
+- **Dos interfaces, una herramienta:**
+  - `lazynet` abre una TUI interactiva con teclado y mouse;
+  - los subcomandos sirven para tareas rápidas y scripts, con `-o json` para salida procesable.
+- **Información del equipo:** modelo, serial, MAC, IP de gestión, versión de OS, uptime y reloj. Funciona con un equipo o con un grupo completo del inventario en paralelo.
+- **Consulta de interfaces:** estado, VLAN de acceso, velocidad y dúplex, contadores de errores y descripción. Acepta abreviaturas como `1/0/25` o `gi1/0/25`.
+- **Logs por rango de tiempo:**
+  - filtra el buffer del equipo con `--from` / `--to` o `--last 2h`, y por texto y severidad;
+  - entiende las marcas de tiempo de IOS, IOS-XE, NX-OS y ASA;
+  - cuando el año falta, lo deduce del reloj del equipo.
+- **Backups versionados:**
+  - guarda el `running-config` en un repositorio git local;
+  - solo crea una versión nueva si algo cambió;
+  - muestra diffs entre versiones.
+- **Cambios de VLAN de acceso seguros** en switches Catalyst:
+  - rechaza puertos trunk y VLANs inexistentes;
+  - pide confirmar los comandos exactos;
+  - verifica el resultado en el equipo;
+  - pregunta aparte antes del `write memory`;
+  - audita cada intento.
+- **Detección automática de plataforma:** le das una IP y lazynet averigua si es Catalyst, Nexus o ASA.
+- **Credenciales como `sudo`:** las contraseñas se piden y nunca se escriben en disco. Se recuerdan 5 minutos en el keyring del kernel de Linux.
+- **Sin dependencias:** un único binario estático, con SSH y git integrados.
+- **Modo demo:** `lazynet --demo` levanta equipos emulados en localhost, para probar todo sin red.
+
+## Plataformas soportadas
+
+| Funcionalidad | Catalyst (IOS / IOS-XE) | Nexus (NX-OS) | ASA |
+|---|:---:|:---:|:---:|
+| Detección de plataforma | ✅ | ✅ | ✅ |
+| Información del equipo | ✅ | ✅ | ✅ |
+| Consulta de interfaces | ✅ | ✅ | ✅ |
+| Logs por rango de tiempo | ✅ | ✅ | ✅ |
+| Backup y diff de configuración | ✅ | ✅ | ✅ |
+| Cambio de VLAN de acceso | ✅ | — | — |
+
+lazynet funciona en **Linux** (amd64 y arm64). El soporte para Windows y PowerShell está en la [hoja de ruta](#hoja-de-ruta).
+
+> [!NOTE]
+> lazynet está en desarrollo temprano. Los parsers se prueban con salidas reales capturadas de cada plataforma, y las pruebas en equipos de laboratorio están en curso. Si la salida de tus equipos no se interpreta bien, [abre un issue](https://github.com/Camilo-ovalle/Lazy_Net/issues).
 
 ## Instalación
+
+> [!IMPORTANT]
+> Todavía no se ha publicado el primer release. Mientras tanto, usa [Compilar desde el código](#compilar-desde-el-código). Los métodos de abajo funcionarán en cuanto se publique `v0.1.0`.
+
+<details open>
+<summary><b>Script de instalación</b> (cualquier distribución Linux)</summary>
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/Lazy_Net/main/scripts/install.sh | sh
 ```
 
-Con **apt** (Debian / Ubuntu):
+El script descarga el último release para tu arquitectura, verifica su checksum SHA-256 y lo instala en `/usr/local/bin` (o en `~/.local/bin` si no hay sudo). Con `LAZYNET_VERSION=v0.1.0` fijas una versión, y con `LAZYNET_INSTALL_DIR=...` eliges el directorio.
+
+</details>
+
+<details>
+<summary><b>Repositorio APT</b> (Debian, Ubuntu)</summary>
 
 ```sh
 curl -fsSL https://camilo-ovalle.github.io/Lazy_Net/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
@@ -24,42 +130,279 @@ echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.gith
 sudo apt update && sudo apt install lazynet
 ```
 
-También puedes descargar el `.deb`, `.rpm` o tarball desde [releases](https://github.com/Camilo-ovalle/Lazy_Net/releases) (`sudo apt install ./lazynet_*.deb`)
-o usar `go install github.com/Camilo-ovalle/Lazy_Net/cmd/lazynet@latest`.
+</details>
 
-## Probarlo sin red
+<details>
+<summary><b>.deb / .rpm / tarball</b></summary>
 
-```sh
-lazynet --demo                       # TUI con Catalyst, Nexus y ASA emulados
-lazynet --demo vlan set core-sw1 -p 1/0/7 -v 20
-```
-
-El modo demo levanta equipos falsos en localhost. No toca tu red, tu keyring ni tus archivos.
-
-## Uso rápido
+Descarga un paquete desde la [página de releases](https://github.com/Camilo-ovalle/Lazy_Net/releases) e instálalo con:
 
 ```sh
-lazynet inventory init                                   # crea ~/.config/lazynet/inventory.yml
-lazynet info core-sw1                                    # serial, MAC, IP, versión de OS, uptime
-lazynet iface core-sw1 -p 1/0/25                         # estado, VLAN, velocidad, errores
-lazynet logs core-sw1 --from "2026-11-01 08:00" --to "2026-11-01 18:00"
-lazynet backup --group core && lazynet backup diff core-sw1
-lazynet vlan set core-sw1 --port Gi1/0/1 --vlan 110
+sudo apt install ./lazynet_*.deb   # Debian, Ubuntu
+sudo dnf install ./lazynet-*.rpm   # Fedora, RHEL
 ```
 
-En la TUI: `enter` conecta, `1-4` cambia de pestaña (Info, Interfaz, Logs, Backups), `p` consulta una interfaz, `v` cambia una VLAN, `b` toma un backup,
-`f` `/` `s` filtran los logs por fecha, texto y severidad, `a` conecta a una IP fuera del inventario y `?` muestra la ayuda. El mouse funciona para clics y scroll.
+Los paquetes también instalan el autocompletado para bash, zsh y fish.
 
-## Seguridad
+</details>
 
-- **Cambio de VLAN:**
-  1. Valida el puerto, rechaza trunks y verifica que la VLAN exista, todo con `show`.
-  2. Muestra los comandos exactos y espera una `y` explícita.
-  3. Verifica el resultado leyendo el puerto de nuevo.
-  4. Pregunta aparte si hacer `write memory`.
-  5. Registra todo en `~/.local/share/lazynet/audit.log`.
-- **Credenciales:** las contraseñas se piden, **nunca se guardan en disco**, y se recuerdan durante **5 minutos** (como `sudo`). En Linux viven en el keyring del kernel con expiración automática.
-- **Host keys:** se confía en la llave en la primera conexión (TOFU), guardada en `~/.config/lazynet/known_hosts`. Una llave que cambia es un error grave. La llave se verifica *antes* de pedir la contraseña.
-- **Privilegios:** se requiere un login con privilegio 15 (prompt `#`).
+<details>
+<summary><b>Go</b></summary>
 
-Más detalles (formato del inventario, `config.yml`, desarrollo) en el [README en inglés](README.md).
+```sh
+go install github.com/Camilo-ovalle/Lazy_Net/cmd/lazynet@latest
+```
+
+</details>
+
+### Compilar desde el código
+
+Requiere Go 1.26 o superior.
+
+```sh
+git clone https://github.com/Camilo-ovalle/Lazy_Net.git
+cd Lazy_Net
+make build        # genera ./lazynet
+```
+
+## Primeros pasos
+
+**1. Pruébalo sin red.** El modo demo levanta un Catalyst, un Nexus y un ASA emulados en localhost. No toca tu red, tu keyring ni tus archivos.
+
+```sh
+lazynet --demo
+```
+
+**2. Crea tu inventario.**
+
+```sh
+lazynet inventory init          # escribe un ejemplo en ~/.config/lazynet/inventory.yml
+$EDITOR "$(lazynet inventory path)"
+lazynet inventory check --reach # valida el archivo y prueba la conectividad TCP
+```
+
+**3. Abre la TUI.**
+
+```sh
+lazynet
+```
+
+## Uso
+
+### Línea de comandos
+
+```sh
+lazynet info core-sw1                         # modelo, serial, MAC, IP, versión de OS, uptime
+lazynet info --group core -o json             # un grupo completo, en JSON
+lazynet iface core-sw1 -p 1/0/25              # una interfaz (Gi1/0/25, gi1/0/25 y 1/0/25 funcionan igual)
+lazynet logs core-sw1 --last 2h --severity warning
+lazynet logs core-sw1 --from "2026-11-01 08:00" --to "2026-11-01 18:00" --grep UPDOWN
+lazynet backup --group core                   # o un solo equipo, o --all
+lazynet backup diff core-sw1                  # qué cambió desde el backup anterior
+lazynet vlan set core-sw1 -p 1/0/7 -v 20      # validado, confirmado, verificado y auditado
+```
+
+| Comando | Descripción |
+|---|---|
+| `info [equipo] [--group G]` | Información del equipo |
+| `iface <equipo> -p PUERTO [--raw]` | Detalle de la interfaz, o la salida cruda del `show` |
+| `logs <equipo> [--from T --to T \| --last D] [--grep S] [--severity L]` | Logs filtrados del equipo |
+| `backup [equipo] [--group G \| --all]` | Guarda el `running-config` en el repositorio de backups |
+| `backup list \| show \| diff <equipo>` | Consulta y compara backups |
+| `vlan set <equipo> -p PUERTO -v VLAN` | Cambia una VLAN de acceso (Catalyst) |
+| `inventory list \| add \| check \| init \| path` | Administra el inventario |
+| `completion bash \| zsh \| fish` | Autocompletado, incluidos los nombres de equipos |
+
+Opciones globales:
+- `-u` cambia el usuario SSH;
+- `--ssh-port` cambia el puerto SSH;
+- `-o json` da salida procesable;
+- `--demo` usa los equipos emulados.
+
+Un equipo puede ser un nombre del inventario, una IP o `host:puerto`.
+
+### Interfaz de terminal
+
+| Tecla | Acción | Tecla | Acción |
+|---|---|---|---|
+| `↑` `↓` / `j` `k` | Moverse, hacer scroll | `tab` / `h` `l` | Cambiar de panel |
+| `1`–`4` / `[` `]` | Info · Interface · Logs · Backups | `enter` | Conectar, cargar |
+| `p` | Consultar una interfaz | `v` | Cambiar una VLAN de acceso |
+| `b` | Tomar un backup | `a` | Conectar a una IP fuera del inventario |
+| `f` · `/` · `s` | Logs: rango de tiempo · texto · severidad | `r` | Refrescar |
+| `?` | Ayuda | `q` | Salir |
+
+Con el mouse puedes hacer clic en equipos y pestañas, y desplazarte con la rueda.
+
+## Modelo de seguridad
+
+<p align="center">
+  <img src="assets/lazynet-mockup-vlan.png" alt="Confirmación del cambio de VLAN con los comandos exactos que se van a enviar" width="720">
+</p>
+
+lazynet está pensado para que cualquiera del equipo pueda usarlo sin riesgo. Las garantías están implementadas en el código, no dependen de buenas prácticas.
+
+**Transporte de solo lectura.** La capa SSH solo envía comandos `show …` y ajustes de sesión (`terminal length 0`, `terminal width`, `terminal pager 0`). Cualquier otra cosa se rechaza antes de llegar al equipo, incluidas las redirecciones como `| redirect`, `| tee` y `> archivo`, y los caracteres de control.
+
+**El único cambio que lazynet puede hacer** es el de VLAN de acceso en un switch Catalyst:
+
+1. El nombre del puerto se normaliza y se valida estrictamente, así que una entrada como `1/0/1;reload` se rechaza.
+2. Primero se hacen chequeos de solo lectura:
+   - `show interfaces <puerto> switchport` rechaza puertos trunk y dinámicos;
+   - `show vlan brief` confirma que la VLAN exista y esté activa;
+   - las VLANs reservadas se rechazan.
+3. lazynet muestra el equipo, el puerto, la VLAN actual y la nueva, y los comandos **exactos**. Luego espera una `y` explícita. `Enter` nunca aprueba un cambio.
+4. Solo se pueden enviar las líneas que confirmaste. La TUI vuelve a revisar el puerto justo antes de aplicar; si algo cambió desde que lo revisaste, no se envía nada.
+5. lazynet vuelve a leer el puerto para verificar el cambio.
+6. Una pregunta aparte confirma el `write memory`. Mientras no guardes, el cambio solo existe en el `running-config`.
+7. Cada intento (rechazado, aplicado o fallido) se agrega a `~/.local/share/lazynet/audit.log` en formato JSON lines. Cada registro incluye usuario local, usuario del equipo, host, puerto, VLAN anterior y nueva, comandos y resultado.
+
+No existe un flag `--yes`.
+
+**Credenciales y SSH.**
+- Las contraseñas nunca se escriben en disco. Se guardan 5 minutos en el keyring del kernel de Linux, que las expira solo, y cada uso renueva el plazo. Con `credential_ttl: 0` se guardan solo en memoria.
+- Las llaves de host se confían en el primer uso (TOFU) y se guardan en el `known_hosts` propio de lazynet. lazynet verifica la llave *antes* de pedir la contraseña. Si la llave cambia, es un error y la conexión no sigue.
+- Se requiere un login con privilegio 15 (prompt `#`). Las cuentas que entran en `>` reciben un error claro, en lugar de una sesión a medias.
+
+## Configuración
+
+lazynet sigue la especificación XDG de directorios. Con `LAZYNET_HOME` puedes guardar todo bajo una sola carpeta.
+
+| Ruta | Contenido |
+|---|---|
+| `~/.config/lazynet/inventory.yml` | Equipos y grupos |
+| `~/.config/lazynet/config.yml` | Ajustes (opcional) |
+| `~/.config/lazynet/known_hosts` | Llaves SSH confiables |
+| `~/.local/share/lazynet/backups/` | Repositorio git con una carpeta por equipo |
+| `~/.local/share/lazynet/audit.log` | Log de auditoría de cambios (JSON lines) |
+| `~/.cache/lazynet/detected.json` | Caché de detección de plataforma |
+
+<details>
+<summary><b>inventory.yml</b></summary>
+
+```yaml
+defaults:
+  username: admin
+  # port: 22
+
+devices:
+  - name: core-sw1
+    host: 10.10.0.11
+    group: core
+    description: Catalyst 9300 core switch, rack A1
+  - name: dc-n9k-1
+    host: 10.10.0.21
+    group: datacenter
+  - name: fw-edge
+    host: 10.10.0.1
+    group: firewalls
+    username: fwadmin
+    platform: asa        # opcional: omite la detección automática
+```
+
+`lazynet inventory add` agrega un equipo conservando tus comentarios y formato.
+
+</details>
+
+<details>
+<summary><b>config.yml</b></summary>
+
+```yaml
+credential_ttl: 5m     # cuánto se recuerdan las contraseñas; 0 = solo mientras lazynet corre
+workers: 5             # sesiones en paralelo para --group / --all
+ssh_timeout: 15s
+command_timeout: 90s
+default_username: ""
+legacy_ssh: true       # ofrece también algoritmos antiguos (CBC, group14-sha1, ssh-rsa) después de los modernos
+```
+
+</details>
+
+## Solución de problemas
+
+<details>
+<summary><b>"logged in at user EXEC (>)"</b></summary>
+
+lazynet necesita privilegio 15. Dale `privilege 15` a la cuenta, o usa autorización AAA que la deje en nivel 15 al entrar. El soporte para modo `enable` está en la hoja de ruta.
+
+</details>
+
+<details>
+<summary><b>Falla la negociación SSH con un switch antiguo</b></summary>
+
+Las imágenes IOS antiguas pueden ofrecer solo cifrados CBC, `diffie-hellman-group14-sha1` o llaves de host `ssh-rsa`. Están habilitados por defecto, después de los algoritmos modernos. Revisa que `legacy_ssh` no esté en `false`. Revisa también que el equipo tenga una llave RSA de al menos 2048 bits (`crypto key generate rsa modulus 2048`).
+
+</details>
+
+<details>
+<summary><b>"host key changed"</b></summary>
+
+El equipo presentó una llave distinta a la que confiaste antes. Puede ser legítimo, por ejemplo tras un RMA o si se regeneró la llave. Confírmalo con el responsable del equipo y luego borra la línea anterior de `~/.config/lazynet/known_hosts`.
+
+</details>
+
+<details>
+<summary><b>Se omiten entradas de log "without date"</b></summary>
+
+El equipo marca los logs con su uptime en lugar de la fecha. Configura `service timestamps log datetime msec localtime year` para poder filtrarlos por fecha.
+
+</details>
+
+<details>
+<summary><b>La TUI tarda unos segundos en arrancar</b></summary>
+
+Al iniciar, la TUI le pregunta a la terminal su color de fondo. Algunas terminales no responden esa consulta, y la TUI espera hasta que vence un tiempo de espera corto. Las terminales modernas, como Windows Terminal, kitty, Alacritty o GNOME Terminal, responden de inmediato.
+
+</details>
+
+## Desarrollo
+
+```sh
+make test     # tests unitarios y de integración contra un servidor SSH que emula Cisco
+make build    # binario estático en ./lazynet
+make demo     # compila y abre la TUI en modo demo
+go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo falso independiente
+```
+
+<details>
+<summary><b>Estructura del proyecto</b></summary>
+
+| Ruta | Función |
+|---|---|
+| `cmd/lazynet` | Punto de entrada |
+| `internal/cli` | Subcomandos (Cobra) |
+| `internal/tui` | Interfaz Bubble Tea |
+| `internal/app` | Flujo de conexión, credenciales, backups y orquestación del cambio de VLAN |
+| `internal/device` | Drivers por plataforma, detección, nombres de interfaz, planificación del cambio de VLAN |
+| `internal/transport` | Sesiones SSH, guardia de solo lectura, cambios confirmados, llaves de host |
+| `internal/parse` | Parsers de salidas `show` y marcas de tiempo de logs |
+| `internal/mockssh` | Servidor SSH que emula el CLI de Cisco (tests y modo demo) |
+| `internal/backup`, `internal/audit`, `internal/creds` | Backups en git, log de auditoría, caché de credenciales |
+| `assets/` | Logo, íconos e imágenes del README ([generador](assets/assets-generator)) |
+
+</details>
+
+Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. El workflow de release también publica el repositorio APT firmado en GitHub Pages. Para eso necesita los secretos `APT_GPG_PRIVATE_KEY` y `APT_GPG_PASSPHRASE`.
+
+Por ahora, la contribución más valiosa son reportes de bugs que incluyan la salida `show` de tus equipos, sin datos sensibles. Esas salidas se convierten en fixtures para los tests de los parsers.
+
+## Hoja de ruta
+
+- [ ] Soporte para Windows y PowerShell (Credential Manager)
+- [ ] Modo `enable` para cuentas con privilegio menor a 15
+- [ ] Jump hosts / bastiones
+- [ ] Logs desde un servidor syslog
+- [ ] Restaurar backups
+- [ ] Cambios de VLAN en Nexus
+
+## Agradecimientos
+
+- [lazygit](https://github.com/jesseduffield/lazygit) y [lazydocker](https://github.com/jesseduffield/lazydocker), la inspiración de la interfaz.
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss) y [Bubbles](https://github.com/charmbracelet/bubbles), de Charm.
+- [scrapligo](https://github.com/scrapli/scrapligo), [go-git](https://github.com/go-git/go-git) y [Cobra](https://github.com/spf13/cobra).
+
+lazynet es un proyecto independiente, sin afiliación ni respaldo de Cisco Systems. Cisco, Catalyst y Nexus son marcas registradas de Cisco Systems, Inc.
+
+## Licencia
+
+Todavía no se ha elegido una licencia. Hasta que se agregue, todos los derechos están reservados.

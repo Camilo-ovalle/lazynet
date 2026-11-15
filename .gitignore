@@ -4,3 +4,13 @@
 /dist/
 /lazynet
 coverage.*
+
+# assets generator: build outputs and local dependencies
+/assets/assets-generator/out/
+/assets/assets-generator/out_b/
+/assets/assets-generator/final/
+/assets/assets-generator/fonts/
+/assets/assets-generator/node_modules/
+/assets/assets-generator/package*.json
+/assets/assets-generator/.venv/
+__pycache__/

@@ -1,3 +1,7 @@
+# Personal agent settings (shared ones are committed)
+.claude/settings.local.json
+CLAUDE.local.md
+
 *.out
 *.test
 /completions/

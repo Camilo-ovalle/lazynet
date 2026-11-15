@@ -1,4 +1,4 @@
-module github.com/Camilo-ovalle/Lazy_Net
+module github.com/Camilo-ovalle/lazynet
 
 go 1.26.4
 

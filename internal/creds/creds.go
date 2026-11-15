@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package creds remembers device passwords for a short grace period, like
 // sudo does. Passwords are never written to disk: on Linux they live in the
 // kernel keyring with a kernel-enforced expiry, so the grace period works

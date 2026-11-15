@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package parse turns Cisco CLI output into structured data. Parsers are
 // lenient: they extract what they recognise and leave fields empty otherwise,
 // so callers can always fall back to showing the raw output.

@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package device implements per-platform drivers (Catalyst, Nexus, ASA):
 // detection, information gathering and the guarded VLAN change workflow.
 package device

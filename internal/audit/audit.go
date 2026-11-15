@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package audit appends a record of every configuration change to a local
 // JSON-lines file (one object per line, easy to grep or ship to a SIEM).
 package audit

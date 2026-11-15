@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package device
 
 import (
@@ -9,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/mockssh"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/transport"
+	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
+	"github.com/Camilo-ovalle/lazynet/internal/transport"
 )
 
 func connect(t *testing.T, platform string) (*mockssh.Device, *transport.Conn) {

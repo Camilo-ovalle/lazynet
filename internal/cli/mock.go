@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package cli
 
 import (
@@ -5,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/mockssh"
+	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
 	"github.com/spf13/cobra"
 )
 

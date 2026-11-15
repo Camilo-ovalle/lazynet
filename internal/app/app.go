@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package app wires configuration, inventory, credentials, transport and
 // drivers together. Both the CLI and the TUI drive devices through it, so
 // safety rules (confirmation, audit, read-only guard) live in one place.
@@ -11,13 +14,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/audit"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/backup"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/config"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/creds"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/device"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/inventory"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/transport"
+	"github.com/Camilo-ovalle/lazynet/internal/audit"
+	"github.com/Camilo-ovalle/lazynet/internal/backup"
+	"github.com/Camilo-ovalle/lazynet/internal/config"
+	"github.com/Camilo-ovalle/lazynet/internal/creds"
+	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/transport"
 )
 
 // Prompter asks the human for things mid-operation. The CLI implements it

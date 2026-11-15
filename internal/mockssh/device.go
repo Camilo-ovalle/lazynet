@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package mockssh is a fake Cisco SSH server used by tests and demo mode.
 // It emulates prompts, privilege/config modes, output filters and a small
 // amount of state (switchport VLANs) so the full VLAN-change workflow can be

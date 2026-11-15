@@ -11,10 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Camilo-ovalle/Lazy_Net/actions/workflows/ci.yml"><img src="https://github.com/Camilo-ovalle/Lazy_Net/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/Camilo-ovalle/Lazy_Net/releases"><img src="https://img.shields.io/github/v/release/Camilo-ovalle/Lazy_Net?include_prereleases&sort=semver" alt="Release"></a>
-  <img src="https://img.shields.io/github/go-mod/go-version/Camilo-ovalle/Lazy_Net" alt="Go version">
+  <a href="https://github.com/Camilo-ovalle/lazynet/actions/workflows/ci.yml"><img src="https://github.com/Camilo-ovalle/lazynet/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Camilo-ovalle/lazynet/releases"><img src="https://img.shields.io/github/v/release/Camilo-ovalle/lazynet?include_prereleases&sort=semver" alt="Release"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/Camilo-ovalle/lazynet" alt="Go version">
   <img src="https://img.shields.io/badge/platform-linux-informational" alt="Platform: Linux">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Camilo-ovalle/lazynet" alt="License"></a>
 </p>
 
 <p align="center">
@@ -80,7 +81,7 @@ lazynet puts those everyday tasks behind a fast keyboard- and mouse-driven inter
 lazynet runs on **Linux** (amd64 and arm64). Windows and PowerShell support is on the [roadmap](#roadmap).
 
 > [!NOTE]
-> lazynet is in early development. Parsers are tested against captured output from each platform. Testing on lab hardware is in progress, so please [open an issue](https://github.com/Camilo-ovalle/Lazy_Net/issues) if output from your devices is not parsed correctly.
+> lazynet is in early development. Parsers are tested against captured output from each platform. Testing on lab hardware is in progress, so please [open an issue](https://github.com/Camilo-ovalle/lazynet/issues) if output from your devices is not parsed correctly.
 
 ## Installation
 
@@ -91,7 +92,7 @@ lazynet runs on **Linux** (amd64 and arm64). Windows and PowerShell support is o
 <summary><b>Install script</b> (any Linux distribution)</summary>
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/Lazy_Net/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
 ```
 
 The script downloads the latest release for your architecture, verifies its SHA-256 checksum and installs it into `/usr/local/bin` (or `~/.local/bin` without sudo). You can set these variables:
@@ -105,8 +106,8 @@ The script downloads the latest release for your architecture, verifies its SHA-
 <summary><b>APT repository</b> (Debian, Ubuntu)</summary>
 
 ```sh
-curl -fsSL https://camilo-ovalle.github.io/Lazy_Net/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.github.io/Lazy_Net stable main" | sudo tee /etc/apt/sources.list.d/lazynet.list
+curl -fsSL https://camilo-ovalle.github.io/lazynet/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.github.io/lazynet stable main" | sudo tee /etc/apt/sources.list.d/lazynet.list
 sudo apt update && sudo apt install lazynet
 ```
 
@@ -115,7 +116,7 @@ sudo apt update && sudo apt install lazynet
 <details>
 <summary><b>.deb / .rpm / tarball</b></summary>
 
-Download a package from the [releases page](https://github.com/Camilo-ovalle/Lazy_Net/releases), then install it:
+Download a package from the [releases page](https://github.com/Camilo-ovalle/lazynet/releases), then install it:
 
 ```sh
 sudo apt install ./lazynet_*.deb   # Debian, Ubuntu
@@ -130,7 +131,7 @@ The packages also install shell completions for bash, zsh and fish.
 <summary><b>Go</b></summary>
 
 ```sh
-go install github.com/Camilo-ovalle/Lazy_Net/cmd/lazynet@latest
+go install github.com/Camilo-ovalle/lazynet/cmd/lazynet@latest
 ```
 
 </details>
@@ -140,8 +141,8 @@ go install github.com/Camilo-ovalle/Lazy_Net/cmd/lazynet@latest
 Requires Go 1.26 or newer.
 
 ```sh
-git clone https://github.com/Camilo-ovalle/Lazy_Net.git
-cd Lazy_Net
+git clone https://github.com/Camilo-ovalle/lazynet.git
+cd lazynet
 make build        # produces ./lazynet
 ```
 
@@ -382,4 +383,6 @@ lazynet is an independent project. It is not affiliated with or endorsed by Cisc
 
 ## License
 
-No license has been chosen yet. Until one is added, all rights are reserved.
+Copyright 2026 Camilo Enrique Ovalle Ceron.
+
+lazynet is licensed under the [Apache License, Version 2.0](LICENSE). It is provided **"as is", without warranties or conditions of any kind**. See the license for the full terms, including the limitation of liability. Redistributions must keep the copyright notice and the [NOTICE](NOTICE) file.

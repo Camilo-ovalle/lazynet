@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package render formats device data for the terminal. It is shared by the
 // CLI and the TUI so both look the same.
 package render
@@ -7,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/device"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/parse"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/theme"
+	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/theme"
 )
 
 // KV renders aligned label/value rows.

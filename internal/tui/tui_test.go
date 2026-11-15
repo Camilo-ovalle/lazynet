@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package tui
 
 import (
@@ -8,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/app"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/audit"
+	"github.com/Camilo-ovalle/lazynet/internal/app"
+	"github.com/Camilo-ovalle/lazynet/internal/audit"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"

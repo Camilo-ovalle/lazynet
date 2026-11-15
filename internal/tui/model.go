@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 // Package tui is the interactive Bubble Tea interface: a device list on the
 // left, tabs with details on the right, modal dialogs for input and for
 // confirming changes. Mouse is supported (click to select, wheel to scroll).
@@ -9,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/app"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/backup"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/device"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/inventory"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/app"
+	"github.com/Camilo-ovalle/lazynet/internal/backup"
+	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/parse"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"

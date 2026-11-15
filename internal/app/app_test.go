@@ -1,3 +1,6 @@
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+
 package app
 
 import (
@@ -6,11 +9,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Camilo-ovalle/Lazy_Net/internal/config"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/creds"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/device"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/inventory"
-	"github.com/Camilo-ovalle/Lazy_Net/internal/mockssh"
+	"github.com/Camilo-ovalle/lazynet/internal/config"
+	"github.com/Camilo-ovalle/lazynet/internal/creds"
+	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
 )
 
 type fakePrompter struct {

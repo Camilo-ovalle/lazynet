@@ -5,7 +5,7 @@
 // with the static mockup as poster. If the recording is missing, as in local
 // development, the poster shows instead.
 import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 interface Props {
   name: string;
@@ -17,8 +17,10 @@ interface Props {
 }
 const { name, poster, alt, width = 1440, height = 860, eager = false } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
-const publicDir = fileURLToPath(new URL("../../public/", import.meta.url));
-const hasVideo = existsSync(`${publicDir}media/${name}.webm`) || existsSync(`${publicDir}media/${name}.mp4`);
+// Resolved from the project root (astro build runs in site/). import.meta.url
+// would point into the build output, where public/ doesn't exist.
+const mediaDir = join(process.cwd(), "public", "media");
+const hasVideo = existsSync(join(mediaDir, `${name}.webm`)) || existsSync(join(mediaDir, `${name}.mp4`));
 ---
 {hasVideo ? (
   <video

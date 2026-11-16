@@ -23,8 +23,9 @@ type Device struct {
 	Port     int    `yaml:"port,omitempty"`
 	Group    string `yaml:"group,omitempty"`
 	Username string `yaml:"username,omitempty"`
-	// Platform optionally pins the platform (catalyst|nexus|asa) and skips
-	// auto-detection. Leave empty to auto-detect.
+	// Platform optionally pins the platform (a registered ID or alias, e.g.
+	// catalyst or paloalto) and skips auto-detection. Leave empty to
+	// auto-detect.
 	Platform    string `yaml:"platform,omitempty"`
 	Description string `yaml:"description,omitempty"`
 }
@@ -140,8 +141,9 @@ func (inv *Inventory) Groups() []string {
 	return out
 }
 
-// Validate reports structural problems (missing host, duplicate names, bad platform).
-func (inv *Inventory) Validate() []error {
+// Validate reports structural problems (missing host, duplicate names) and,
+// when checkPlatform is not nil, platforms it rejects (platform.Parse).
+func (inv *Inventory) Validate(checkPlatform func(string) error) []error {
 	var errs []error
 	names := map[string]bool{}
 	for i, d := range inv.Devices {
@@ -156,10 +158,10 @@ func (inv *Inventory) Validate() []error {
 			}
 			names[k] = true
 		}
-		switch d.Platform {
-		case "", "catalyst", "nexus", "asa":
-		default:
-			errs = append(errs, fmt.Errorf("%s: unknown platform %q (use catalyst, nexus or asa)", where, d.Platform))
+		if checkPlatform != nil && d.Platform != "" {
+			if err := checkPlatform(d.Platform); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", where, err))
+			}
 		}
 	}
 	return errs
@@ -212,7 +214,7 @@ func Add(path string, d Device) error {
 // Example is written by `lazynet inventory init`.
 const Example = `# lazynet inventory
 # Each device needs at least a host. "platform" is optional: lazynet detects
-# Catalyst (IOS / IOS-XE), Nexus (NX-OS) and ASA automatically.
+# it automatically (run 'lazynet inventory add --help' for the list).
 defaults:
   username: admin
   # port: 22

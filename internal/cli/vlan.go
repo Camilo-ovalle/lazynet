@@ -8,19 +8,20 @@ import (
 	"fmt"
 	"github.com/Camilo-ovalle/lazynet/internal/render"
 
-	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/spf13/cobra"
 )
 
 func newVlanCmd(g *globals) *cobra.Command {
-	vlan := &cobra.Command{Use: "vlan", Short: "VLAN operations (Catalyst)"}
+	supported := platform.Describe(platform.With(platform.CapVlanChange))
+	vlan := &cobra.Command{Use: "vlan", Short: "VLAN operations (" + supported + ")"}
 	var port string
 	var id int
 	set := &cobra.Command{
 		Use:   "set <device> --port <interface> --vlan <id>",
 		Short: "Change the access VLAN of a port (asks for confirmation)",
-		Long: `Change the access VLAN of a switchport on a Catalyst switch.
+		Long: `Change the access VLAN of a switchport (supported on: ` + supported + `).
 
 Before anything is sent, lazynet checks (with show commands only) that the
 port is an access port (trunks are refused), that the VLAN exists and is
@@ -60,7 +61,7 @@ func (g *globals) vlanSet(target, port string, id int) error {
 	}
 	fmt.Println()
 	fmt.Println(render.KV([][2]string{
-		{"Device", fmt.Sprintf("%s (%s)  %s", s.Device.Label(), s.Device.Host, theme.PlatformBadge(string(s.Platform)))},
+		{"Device", fmt.Sprintf("%s (%s)  %s", s.Device.Label(), s.Device.Host, render.PlatformBadge(s.Platform))},
 		{"Port", plan.Port},
 		{"Current", fmt.Sprintf("VLAN %d %s", plan.CurrentVlan, theme.Dim.Render(plan.CurrentVlanName))},
 		{"Target", fmt.Sprintf("VLAN %d %s", plan.TargetVlan, theme.Dim.Render(plan.TargetVlanName))},
@@ -87,7 +88,10 @@ func (g *globals) vlanSet(target, port string, id int) error {
 	}
 	fmt.Println(theme.Good.Render(fmt.Sprintf("✓ %s is now in VLAN %d (verified on the device).", plan.Port, plan.TargetVlan)))
 
-	save := device.SaveRequest(s.Platform)
+	save, err := g.app.SaveRequest(s)
+	if err != nil {
+		return err
+	}
 	saveShown := save.Display()
 	fmt.Println("\n" + theme.Bold.Render("Save running-config to startup-config? This will send:"))
 	fmt.Println(render.Commands(saveShown))

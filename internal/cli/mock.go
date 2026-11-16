@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
 	"github.com/spf13/cobra"
@@ -18,9 +19,12 @@ func newMockCmd() *cobra.Command {
 	var unpriv bool
 	c := &cobra.Command{
 		Use:    "mock",
-		Short:  "Run an emulated Cisco device over SSH (for testing)",
+		Short:  "Run an emulated network device over SSH (for testing)",
 		Hidden: true,
 		RunE: func(*cobra.Command, []string) error {
+			if !mockssh.Emulates(platform) {
+				return fmt.Errorf("no emulator for %q (use %s)", platform, strings.Join(mockssh.Platforms(), ", "))
+			}
 			dev := mockssh.NewDevice(platform, host)
 			dev.Unprivileged = unpriv
 			srv, err := mockssh.Start(listen, dev, user, pass)
@@ -37,7 +41,7 @@ func newMockCmd() *cobra.Command {
 	}
 	f := c.Flags()
 	f.StringVar(&listen, "listen", "127.0.0.1:2222", "listen address")
-	f.StringVar(&platform, "platform", "catalyst", "catalyst, nexus or asa")
+	f.StringVar(&platform, "platform", "catalyst", strings.Join(mockssh.Platforms(), ", "))
 	f.StringVar(&host, "hostname", "mock-sw1", "device hostname")
 	f.StringVar(&user, "user", "admin", "accepted username")
 	f.StringVar(&pass, "password", "admin", "accepted password")

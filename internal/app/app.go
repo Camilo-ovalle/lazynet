@@ -18,9 +18,13 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/backup"
 	"github.com/Camilo-ovalle/lazynet/internal/config"
 	"github.com/Camilo-ovalle/lazynet/internal/creds"
-	"github.com/Camilo-ovalle/lazynet/internal/device"
+	"github.com/Camilo-ovalle/lazynet/internal/detect"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/transport"
+
+	// Every supported platform registers itself here.
+	_ "github.com/Camilo-ovalle/lazynet/internal/platforms/all"
 )
 
 // Prompter asks the human for things mid-operation. The CLI implements it
@@ -80,12 +84,50 @@ type Session struct {
 	Device   inventory.Device
 	User     string
 	Conn     *transport.Conn
-	Platform device.Platform
-	Driver   device.Driver
+	Platform platform.ID
+	Driver   platform.Driver
 }
 
 // Close ends the SSH session.
 func (s *Session) Close() error { return s.Conn.Close() }
+
+// Info reads the basic device information (every platform supports it).
+func (s *Session) Info() (platform.Info, error) { return s.Driver.Info(s.Device.Host) }
+
+// Interface reads one interface, if the platform supports it.
+func (s *Session) Interface(name string) (platform.InterfaceDetail, error) {
+	r, ok := s.Driver.(platform.InterfaceReader)
+	if !ok {
+		return platform.InterfaceDetail{}, platform.Unsupported(s.Platform, platform.CapInterfaces)
+	}
+	return r.Interface(name)
+}
+
+// Logs reads the log buffer, if the platform supports it.
+func (s *Session) Logs() (platform.LogResult, error) {
+	r, ok := s.Driver.(platform.LogReader)
+	if !ok {
+		return platform.LogResult{}, platform.Unsupported(s.Platform, platform.CapLogs)
+	}
+	return r.Logs()
+}
+
+// RunningConfig reads the configuration to back up, if the platform supports it.
+func (s *Session) RunningConfig() (string, error) {
+	r, ok := s.Driver.(platform.ConfigReader)
+	if !ok {
+		return "", platform.Unsupported(s.Platform, platform.CapBackup)
+	}
+	return r.RunningConfig()
+}
+
+func (s *Session) vlanChanger() (platform.VlanChanger, error) {
+	v, ok := s.Driver.(platform.VlanChanger)
+	if !ok {
+		return nil, platform.Unsupported(s.Platform, platform.CapVlanChange)
+	}
+	return v, nil
+}
 
 func (a *App) username(d inventory.Device, pr Prompter) (string, error) {
 	if d.Username != "" {
@@ -129,6 +171,7 @@ func (a *App) Connect(d inventory.Device, pr Prompter) (*Session, error) {
 		KnownHostsFile: a.Paths.KnownHosts,
 		DialTimeout:    a.Cfg.SSHTimeout.D(), CommandTimeout: a.Cfg.CommandTimeout.D(),
 		LegacySSH: a.Cfg.LegacySSH,
+		Dialect:   platform.Dialect(),
 	}
 	// Like ssh: verify the host (and that it is reachable) before asking for
 	// a password, so a password is never typed for an untrusted device.
@@ -166,23 +209,16 @@ func (a *App) Connect(d inventory.Device, pr Prompter) (*Session, error) {
 			return nil, err
 		}
 	}
-	p, err := device.ParsePlatform(d.Platform)
-	if err == nil && p == device.Unknown {
-		p, err = device.Detect(conn)
-	}
+	def, err := detect.Identify(conn, d.Platform)
 	if err == nil {
-		err = device.Setup(p, conn)
-	}
-	var drv device.Driver
-	if err == nil {
-		drv, err = device.New(p, conn)
+		err = platform.Setup(def, conn)
 	}
 	if err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
-	a.rememberPlatform(d.Label(), p)
-	return &Session{Device: d, User: user, Conn: conn, Platform: p, Driver: drv}, nil
+	a.rememberPlatform(d.Label(), def.ID)
+	return &Session{Device: d, User: user, Conn: conn, Platform: def.ID, Driver: def.New(conn)}, nil
 }
 
 func (a *App) verifyHost(o transport.Options, pr Prompter) error {
@@ -215,17 +251,17 @@ func (a *App) trust(uk *transport.UnknownHostKeyError, pr Prompter) error {
 // --- detection cache (shown as badges in the TUI device list) ---
 
 // DetectedPlatforms returns label -> platform detected on previous connects.
-func (a *App) DetectedPlatforms() map[string]device.Platform {
+func (a *App) DetectedPlatforms() map[string]platform.ID {
 	a.detectMu.Lock()
 	defer a.detectMu.Unlock()
-	m := map[string]device.Platform{}
+	m := map[string]platform.ID{}
 	if b, err := os.ReadFile(a.Paths.Detect); err == nil {
 		_ = json.Unmarshal(b, &m)
 	}
 	return m
 }
 
-func (a *App) rememberPlatform(label string, p device.Platform) {
+func (a *App) rememberPlatform(label string, p platform.ID) {
 	m := a.DetectedPlatforms()
 	if m[label] == p {
 		return
@@ -256,7 +292,7 @@ func (a *App) Backups() (*backup.Store, error) {
 
 // Backup fetches running-config and stores it.
 func (a *App) Backup(s *Session) (backup.Result, error) {
-	cfg, err := s.Driver.RunningConfig()
+	cfg, err := s.RunningConfig()
 	if err != nil {
 		return backup.Result{}, err
 	}
@@ -270,8 +306,21 @@ func (a *App) Backup(s *Session) (backup.Result, error) {
 // --- guarded changes (always audited) ---
 
 // PlanVlan validates a VLAN change using show commands only.
-func (a *App) PlanVlan(s *Session, port string, vlan int) (*device.VlanPlan, error) {
-	return device.PlanVlanChange(s.Conn, s.Platform, port, vlan)
+func (a *App) PlanVlan(s *Session, port string, vlan int) (*platform.VlanPlan, error) {
+	v, err := s.vlanChanger()
+	if err != nil {
+		return nil, err
+	}
+	return v.PlanVlanChange(port, vlan)
+}
+
+// SaveRequest builds the request that persists running-config on s.
+func (a *App) SaveRequest(s *Session) (*transport.ChangeRequest, error) {
+	v, err := s.vlanChanger()
+	if err != nil {
+		return nil, err
+	}
+	return v.SaveRequest(), nil
 }
 
 func (a *App) record(s *Session, action string, cmds []string) audit.Record {
@@ -279,7 +328,7 @@ func (a *App) record(s *Session, action string, cmds []string) audit.Record {
 }
 
 // DeclineVlan audits a change the user chose not to apply.
-func (a *App) DeclineVlan(d inventory.Device, user string, plan *device.VlanPlan) {
+func (a *App) DeclineVlan(d inventory.Device, user string, plan *platform.VlanPlan) {
 	r := audit.Record{DeviceUser: user, Device: d.Label(), Host: d.Host, Action: "vlan-change", Commands: plan.Change.Display()}
 	r.Port, r.FromVlan, r.ToVlan, r.Result = plan.Port, plan.CurrentVlan, plan.TargetVlan, "declined"
 	_ = a.Audit.Write(r)
@@ -287,10 +336,14 @@ func (a *App) DeclineVlan(d inventory.Device, user string, plan *device.VlanPlan
 
 // ApplyVlan sends a confirmed plan, verifies it and writes the audit record.
 // The caller must have called plan.Change.Confirm with the displayed lines.
-func (a *App) ApplyVlan(s *Session, plan *device.VlanPlan) error {
+func (a *App) ApplyVlan(s *Session, plan *platform.VlanPlan) error {
+	v, err := s.vlanChanger()
+	if err != nil {
+		return err
+	}
 	r := a.record(s, "vlan-change", plan.Change.Display())
 	r.Port, r.FromVlan, r.ToVlan = plan.Port, plan.CurrentVlan, plan.TargetVlan
-	_, err := device.ApplyVlanChange(s.Conn, plan)
+	_, err = v.ApplyVlanChange(s.Conn, plan)
 	r.Result = "applied"
 	if err != nil {
 		r.Result, r.Error = "failed", err.Error()

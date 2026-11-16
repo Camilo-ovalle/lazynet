@@ -1,7 +1,7 @@
 // Copyright 2026 Camilo Enrique Ovalle Ceron
 // SPDX-License-Identifier: Apache-2.0
 
-package device
+package cisco
 
 import (
 	"fmt"
@@ -34,13 +34,14 @@ var (
 )
 
 // NormalizeInterface expands user shorthand ("1/0/1", "gi1/0/1",
-// "Gi 1/0/1") into the canonical IOS name ("GigabitEthernet1/0/1").
-// Bare numbers default to GigabitEthernet (Ethernet on Nexus).
+// "Gi 1/0/1") into the canonical Cisco name ("GigabitEthernet1/0/1").
+// Bare numbers get the bare prefix (GigabitEthernet on IOS, Ethernet on
+// NX-OS).
 //
 // The result is strictly validated because it is interpolated into device
 // commands: anything other than a known prefix plus digits and slashes is
 // rejected, so input like "Gi1/0/1\nreload" can never reach a device.
-func NormalizeInterface(in string, p Platform) (string, error) {
+func NormalizeInterface(in, bare string) (string, error) {
 	s := strings.TrimSpace(in)
 	m := ifSplit.FindStringSubmatch(s)
 	if m == nil {
@@ -51,10 +52,7 @@ func NormalizeInterface(in string, p Platform) (string, error) {
 		return "", fmt.Errorf("invalid interface number %q", num)
 	}
 	if prefix == "" {
-		if p == Nexus {
-			return "Ethernet" + num, nil
-		}
-		return "GigabitEthernet" + num, nil
+		return bare + num, nil
 	}
 	if canon, ok := ifAliases[prefix]; ok {
 		return canon + num, nil

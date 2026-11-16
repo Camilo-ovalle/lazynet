@@ -1,8 +1,10 @@
-# Unified platform used for every lazynet session. Prompt patterns cover IOS,
-# IOS-XE, NX-OS, ASA and PAN-OS, so a single session can detect the platform
-# and then apply the right paging settings. No on-open commands: lazynet checks
-# the prompt itself. A '>' prompt is only accepted for PAN-OS operational mode
-# ("user@host>"); on Cisco it means user EXEC and the login is refused.
+# Base CLI definition used for every lazynet session. The prompt patterns are
+# generic ("name>", "name#", "name(config…)#", with '@', '.', '/' and ':'
+# allowed in the name), so one session can detect any registered platform.
+# No on-open commands: lazynet checks the prompt itself (see Dial).
+#
+# failed-when-contains is filled at runtime from the registered platforms
+# (transport.Dialect), so this file names no vendor.
 platform-type: 'lazynet_cli'
 default:
   driver-type: 'network'
@@ -35,14 +37,4 @@ default:
       escalate-auth: false
       escalate-prompt:
   default-desired-privilege-level: 'privilege-exec'
-  failed-when-contains:
-    - '% Ambiguous command'
-    - '% Incomplete command'
-    - '% Invalid input detected'
-    - '% Unknown command'
-    - '% Invalid command'
-    - 'ERROR: %'
-    - '% Authorization failed'
-    - 'Invalid syntax.'
-    - 'Unknown command:'
-    - 'Server error :'
+  failed-when-contains: []

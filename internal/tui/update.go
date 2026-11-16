@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/render"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -107,6 +108,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.refreshContent(false)
 	case "b":
 		if d != nil {
+			if err := m.unsupported(d, platform.CapBackup); err != nil {
+				m.setStatus(errText(err), true)
+				return m, nil
+			}
 			m.tab = tabBackups
 			m.setStatus("backing up "+d.Label()+"…", false)
 			return m, m.start(d.Label(), tabBackups, takeBackup(m.app, m.env, *d))
@@ -230,6 +235,13 @@ func (m *model) openIfacePrompt() tea.Cmd {
 		return nil
 	}
 	st := m.state(d.Label())
+	if err := m.unsupported(d, platform.CapInterfaces); err != nil {
+		st.iface, st.ifaceErr = nil, err
+		m.tab = tabIface
+		m.setStatus(errText(err), true)
+		m.refreshContent(true)
+		return nil
+	}
 	md := newInput("Query interface", "Interface on "+d.Label()+" (shorthand works: 1/0/25, gi1/0/25, eth1/1)",
 		[3]string{"Interface", "Gi1/0/25", st.ifacePort})
 	md.onSubmit = func(m *model, v []string) tea.Cmd {
@@ -329,12 +341,8 @@ func (m *model) openVlanForm() tea.Cmd {
 	if d == nil {
 		return nil
 	}
-	p := device.Platform(d.Platform)
-	if p == "" {
-		p = m.platforms[d.Label()]
-	}
-	if p != "" && p != device.Catalyst {
-		m.setStatus("VLAN change is only available for Catalyst switches ("+d.Label()+" is "+p.Title()+")", true)
+	if err := m.unsupported(d, platform.CapVlanChange); err != nil {
+		m.setStatus(d.Label()+": "+errText(err), true)
 		return nil
 	}
 	port := m.state(d.Label()).ifacePort
@@ -347,14 +355,16 @@ func (m *model) openVlanForm() tea.Cmd {
 			m.setStatus("VLAN must be a number", true)
 			return nil
 		}
-		norm, err := device.NormalizeInterface(v[0], device.Catalyst)
-		if err != nil {
-			m.setStatus(errText(err), true)
+		// The driver validates the port strictly before using it (the
+		// injection barrier); a bad port is reported by the plan.
+		port := strings.TrimSpace(v[0])
+		if port == "" {
+			m.setStatus("the port is required", true)
 			return nil
 		}
-		m.pending = &pendingVlan{dev: *d, port: norm, vlan: vlan}
-		m.setStatus("checking "+norm+" and VLAN "+v[1]+" on "+d.Label()+" (read-only)…", false)
-		return m.start(d.Label(), tabIface, planVlan(m.app, m.env, *d, norm, vlan))
+		m.pending = &pendingVlan{dev: *d, port: port, vlan: vlan}
+		m.setStatus("checking "+port+" and VLAN "+v[1]+" on "+d.Label()+" (read-only)…", false)
+		return m.start(d.Label(), tabIface, planVlan(m.app, m.env, *d, port, vlan))
 	}
 	m.openModal(md)
 	return nil
@@ -456,7 +466,7 @@ func (m model) onPlan(msg planMsg) (tea.Model, tea.Cmd) {
 		m.refreshContent(false)
 		return m, nil
 	}
-	m.platforms[msg.dev.Label()] = device.Catalyst
+	m.platforms[msg.dev.Label()] = msg.platform
 	if msg.plan.NoOp {
 		m.pending = nil
 		m.setStatus(fmt.Sprintf("%s is already in VLAN %d: nothing to do", msg.plan.Port, msg.plan.TargetVlan), false)
@@ -499,7 +509,12 @@ func (m model) onApply(msg applyMsg) (tea.Model, tea.Cmd) {
 	st.iface, st.ifaceErr, st.ifacePort = nil, nil, msg.plan.Port
 	reload := m.start(msg.dev.Label(), tabIface, loadIface(m.app, m.env, msg.dev, msg.plan.Port))
 	m.setStatus(fmt.Sprintf("✓ %s is now in VLAN %d (verified)", msg.plan.Port, msg.plan.TargetVlan), false)
-	save := device.SaveRequest(device.Catalyst).Display()
+	if msg.plan.Save == nil {
+		m.pending = nil
+		m.refreshContent(false)
+		return m, reload
+	}
+	save := msg.plan.Save.Display()
 	dev := msg.dev
 	m.openModal(newConfirm("Save configuration?",
 		theme.Good.Render(fmt.Sprintf("✓ %s is now in VLAN %d.", msg.plan.Port, msg.plan.TargetVlan))+"\n\n"+

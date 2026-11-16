@@ -12,9 +12,9 @@ import (
 
 	"github.com/Camilo-ovalle/lazynet/internal/config"
 	"github.com/Camilo-ovalle/lazynet/internal/creds"
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
 	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 )
 
 type fakePrompter struct {
@@ -62,7 +62,7 @@ func TestConnectRetriesAndCaches(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if s.Platform != device.Catalyst || pr.pwCalls != 2 || pr.keyCalls != 1 {
+	if s.Platform != platform.ID("catalyst") || pr.pwCalls != 2 || pr.keyCalls != 1 {
 		t.Fatalf("platform=%v pw=%d key=%d", s.Platform, pr.pwCalls, pr.keyCalls)
 	}
 	// Second connect: cached password, known host key → no prompts.
@@ -74,7 +74,7 @@ func TestConnectRetriesAndCaches(t *testing.T) {
 	if pr.pwCalls != 2 || pr.keyCalls != 1 {
 		t.Fatalf("expected no new prompts, pw=%d key=%d", pr.pwCalls, pr.keyCalls)
 	}
-	if a.DetectedPlatforms()["sw1"] != device.Catalyst {
+	if a.DetectedPlatforms()["sw1"] != platform.ID("catalyst") {
 		t.Fatal("detection not cached")
 	}
 }
@@ -152,8 +152,18 @@ func TestDemoPaloAltoBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if s.Platform != device.PaloAlto {
+	if s.Platform != platform.ID("paloalto") {
 		t.Fatalf("platform = %q", s.Platform)
+	}
+	// Capabilities the driver lacks are refused before any command is sent.
+	if _, err := s.Logs(); !errors.Is(err, platform.ErrUnsupported) {
+		t.Fatalf("logs = %v, want ErrUnsupported", err)
+	}
+	if _, err := s.Interface("ethernet1/1"); !errors.Is(err, platform.ErrUnsupported) {
+		t.Fatalf("interface = %v, want ErrUnsupported", err)
+	}
+	if _, err := a.PlanVlan(s, "ethernet1/1", 20); !errors.Is(err, platform.ErrUnsupported) {
+		t.Fatalf("PlanVlan = %v, want ErrUnsupported", err)
 	}
 	res, err := a.Backup(s)
 	if err != nil || !res.Changed {

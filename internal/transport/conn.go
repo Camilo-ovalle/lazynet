@@ -4,7 +4,6 @@
 package transport
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -26,17 +25,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
-
-//go:embed cli.yaml
-var platformDef []byte
-
-// panosPrompt matches PAN-OS operational mode: "admin@pa-fw1>" and, on HA
-// pairs, "admin@pa-fw1(active)>". Cisco hostnames cannot contain '@', so a
-// Cisco user-EXEC prompt ("sw1>") never matches and is still refused.
-var panosPrompt = regexp.MustCompile(`^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+(?:\([A-Za-z0-9-]+\))?>$`)
-
-// IsPANOSPrompt reports whether prompt is a PAN-OS operational-mode prompt.
-func IsPANOSPrompt(prompt string) bool { return panosPrompt.MatchString(strings.TrimSpace(prompt)) }
 
 // Errors returned by Dial, classified so the UI can react (re-prompt for a
 // password, ask to trust a host key, ...).
@@ -70,26 +58,42 @@ type Options struct {
 	DialTimeout    time.Duration
 	CommandTimeout time.Duration
 	LegacySSH      bool
+	// Dialect describes the CLIs this session may meet (platform.Dialect).
+	Dialect Dialect
 	// ChannelLog, if set, receives the raw session transcript (debugging).
 	ChannelLog io.Writer
 }
 
-// Conn is an open, privileged SSH session to a device.
+// Conn is an open SSH session to a device, at privilege 15 ("#") or at a
+// platform's read-only operational prompt.
 type Conn struct {
-	mu     sync.Mutex
-	d      *network.Driver
-	prompt string
-	addr   string
-	panos  bool // PAN-OS operational mode: read-only, Apply is refused
+	mu       sync.Mutex
+	d        *network.Driver
+	prompt   string
+	addr     string
+	session  []string // exact session commands Show accepts besides "show …"
+	readOnly bool     // opened at an operational '>' prompt: Apply is refused
 }
 
-// ErrChangesUnsupported is returned by Apply on sessions where lazynet never
-// makes configuration changes (PAN-OS).
+// ErrRejected means the device answered a command with one of the dialect's
+// failure markers (e.g. "% Invalid input detected").
+var ErrRejected = errors.New("device rejected command")
+
+// ErrChangesUnsupported is returned by Apply on read-only sessions (opened at
+// an operational '>' prompt, such as PAN-OS).
 var ErrChangesUnsupported = errors.New("configuration changes are not supported on this platform")
 
 // Dial opens the session and verifies the login landed where lazynet can work:
-// privilege 15 ("#") on Cisco, or operational mode on PAN-OS.
+// privilege 15 ("#"), or a '>' prompt the dialect accepts as an operational
+// (read-only) mode. Any other '>' prompt is refused with ErrNotPrivileged.
 func Dial(o Options) (*Conn, error) {
+	if err := o.Dialect.validate(); err != nil {
+		return nil, err
+	}
+	def, err := o.Dialect.definition()
+	if err != nil {
+		return nil, fmt.Errorf("platform definition: %w", err)
+	}
 	if o.Port == 0 {
 		o.Port = 22
 	}
@@ -118,7 +122,7 @@ func Dial(o Options) (*Conn, error) {
 	if o.ChannelLog != nil {
 		opts = append(opts, options.WithChannelLog(o.ChannelLog))
 	}
-	p, err := platform.NewPlatform(platformDef, o.Host, opts...)
+	p, err := platform.NewPlatform(def, o.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("platform definition: %w", err)
 	}
@@ -135,19 +139,20 @@ func Dial(o Options) (*Conn, error) {
 		return nil, fmt.Errorf("reading prompt: %w", err)
 	}
 	prompt = strings.TrimSpace(prompt)
-	panos := IsPANOSPrompt(prompt)
+	readOnly := false
 	switch {
-	case panos:
-		// PAN-OS operational mode is where lazynet works: never try to
-		// "escalate" from it (there is no enable on PAN-OS).
+	case strings.HasSuffix(prompt, ">") && o.Dialect.OperationalPrompt != nil && o.Dialect.OperationalPrompt(prompt):
+		// A platform's operational mode is where lazynet works: never try
+		// to "escalate" from it, and never send changes on it.
 		d.CurrentPriv, d.DefaultDesiredPriv = "exec", "exec"
+		readOnly = true
 	case strings.HasSuffix(prompt, ">"):
 		_ = d.Channel.Close()
 		return nil, ErrNotPrivileged
 	default:
 		d.CurrentPriv = "privilege-exec"
 	}
-	return &Conn{d: d, prompt: prompt, addr: addr, panos: panos}, nil
+	return &Conn{d: d, prompt: prompt, addr: addr, session: slices.Clone(o.Dialect.SessionCommands), readOnly: readOnly}, nil
 }
 
 // legacyAlgorithms is every modern algorithm (preferred) followed by the
@@ -295,18 +300,18 @@ func ensureFile(path string) error {
 // Prompt returns the device prompt seen at login (e.g. "core-sw1#").
 func (c *Conn) Prompt() string { return c.prompt }
 
-// Hostname is the prompt without the trailing '#' (and ASA context suffixes),
-// or the host part of a PAN-OS "user@host(state)>" prompt.
+// ReadOnly reports whether the session was opened at an operational '>'
+// prompt, where Apply is always refused.
+func (c *Conn) ReadOnly() bool { return c.readOnly }
+
+// Hostname is the host part of the prompt: without the trailing '#' or '>',
+// a "user@" prefix, a "(state)" suffix or an ASA "/context".
 func (c *Conn) Hostname() string {
-	if IsPANOSPrompt(c.prompt) {
-		h := strings.TrimSuffix(c.prompt[strings.IndexByte(c.prompt, '@')+1:], ">")
-		if i := strings.IndexByte(h, '('); i > 0 {
-			h = h[:i]
-		}
-		return h
+	h := strings.TrimRight(c.prompt, "#> ")
+	if i := strings.LastIndexByte(h, '@'); i >= 0 {
+		h = h[i+1:]
 	}
-	h := strings.TrimSuffix(c.prompt, "#")
-	if i := strings.IndexByte(h, '/'); i > 0 {
+	if i := strings.IndexAny(h, "(/"); i > 0 {
 		h = h[:i]
 	}
 	return h
@@ -315,10 +320,10 @@ func (c *Conn) Hostname() string {
 // Addr returns host:port.
 func (c *Conn) Addr() string { return c.addr }
 
-// Show runs a read-only command. Anything that is not a 'show' or session
-// terminal setting is rejected before it reaches the network.
+// Show runs a read-only command. Anything that is not a 'show' or one of the
+// dialect's session settings is rejected before it reaches the network.
 func (c *Conn) Show(cmd string) (string, error) {
-	if err := CheckReadOnly(cmd); err != nil {
+	if err := CheckReadOnly(cmd, c.session...); err != nil {
 		return "", err
 	}
 	c.mu.Lock()
@@ -328,7 +333,7 @@ func (c *Conn) Show(cmd string) (string, error) {
 		return "", fmt.Errorf("%s: %w", cmd, err)
 	}
 	if r.Failed != nil {
-		return r.Result, fmt.Errorf("%s: device rejected command: %s", cmd, firstErrorLine(r.Result))
+		return r.Result, fmt.Errorf("%s: %w: %s", cmd, ErrRejected, firstErrorLine(r.Result))
 	}
 	return r.Result, nil
 }
@@ -338,7 +343,7 @@ func (c *Conn) Apply(cr *ChangeRequest) (string, error) {
 	if cr == nil || !cr.Confirmed() {
 		return "", ErrNotConfirmed
 	}
-	if c.panos {
+	if c.readOnly {
 		return "", ErrChangesUnsupported
 	}
 	c.mu.Lock()

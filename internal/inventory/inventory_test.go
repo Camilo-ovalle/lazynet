@@ -4,6 +4,7 @@
 package inventory
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,7 @@ func TestLoadResolveGroups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if errs := inv.Validate(); len(errs) > 0 {
+	if errs := inv.Validate(nil); len(errs) > 0 {
 		t.Fatalf("unexpected validation errors: %v", errs)
 	}
 	d := inv.Resolve("CORE-SW1")
@@ -78,7 +79,13 @@ func TestAddToMissingFile(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	inv := &Inventory{Devices: []Device{{Name: "a", Host: "1"}, {Name: "A", Host: "2"}, {Name: "b"}, {Name: "c", Host: "3", Platform: "junos"}}}
-	if n := len(inv.Validate()); n != 3 {
-		t.Fatalf("want 3 errors, got %d: %v", n, inv.Validate())
+	known := func(p string) error {
+		if p != "catalyst" {
+			return errors.New("unknown platform")
+		}
+		return nil
+	}
+	if n := len(inv.Validate(known)); n != 3 {
+		t.Fatalf("want 3 errors, got %d: %v", n, inv.Validate(known))
 	}
 }

@@ -6,6 +6,7 @@ package tui
 import (
 	"strings"
 
+	"github.com/Camilo-ovalle/lazynet/internal/render"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -78,11 +79,7 @@ func (m model) deviceLines(h int) []string {
 			continue
 		}
 		name := r.device.Label()
-		p := r.device.Platform
-		if p == "" {
-			p = string(m.platforms[name])
-		}
-		badge := theme.PlatformBadge(p)
+		badge := render.PlatformBadge(m.platformOf(*r.device))
 		if st, ok := m.states[name]; ok && st.loading[m.tab] {
 			badge = m.spin.View() + "  "
 		}

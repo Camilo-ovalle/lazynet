@@ -311,5 +311,35 @@ func TestTUIPaloAlto(t *testing.T) {
 		t.Fatalf("status: %q", h.status())
 	}
 	h.key("3")
-	h.expect("Palo Alto support covers device info and configuration backups")
+	h.expect("Palo Alto: logs not supported yet (available: device info, configuration backups)")
+}
+
+// Features follow the platform's capabilities: nothing is offered (or sent)
+// that the driver does not implement.
+func TestTUICapabilities(t *testing.T) {
+	h, _ := newHarness(t)
+	for range 2 { // access-sw2 -> core-sw1 -> dc-n9k-1
+		h.key("j")
+	}
+	h.key("enter")
+	h.expect("dc-n9k-1", "NX-OS", "p interface", "b backup")
+	if strings.Contains(h.screen(), "VLAN change") {
+		t.Fatal("VLAN change must not be offered on a Nexus")
+	}
+	h.key("v")
+	if !strings.Contains(h.status(), "VLAN changes not supported yet") {
+		t.Fatalf("status: %q", h.status())
+	}
+	if h.m.(model).modal != nil {
+		t.Fatal("no VLAN form must open on a Nexus")
+	}
+	h.key("h") // back to the device list
+	h.key("j") // fw-edge
+	h.key("j") // pa-fw1
+	h.key("enter")
+	h.key("p")
+	h.expect("Palo Alto: interface details not supported yet")
+	if h.m.(model).modal != nil {
+		t.Fatal("no interface prompt must open on a Palo Alto")
+	}
 }

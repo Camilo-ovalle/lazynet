@@ -4,7 +4,6 @@
 package parse
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -17,71 +16,6 @@ func dev(p string) *mockssh.Device {
 	d := mockssh.NewDevice(p, "lab1")
 	d.Now = func() time.Time { return fixedNow }
 	return d
-}
-
-func TestIOSXEVersion(t *testing.T) {
-	v := IOSVersion(dev("catalyst").Exec("show version"))
-	want := Version{Hostname: "lab1", OS: "IOS-XE", Version: "17.09.04a", Model: "C9300-48P", Serial: "FCW2318L0AB", MAC: "706d.15a2.3b80", Uptime: "12 weeks, 3 days, 4 hours, 51 minutes"}
-	if v != want {
-		t.Fatalf("got  %+v\nwant %+v", v, want)
-	}
-}
-
-// TestIOSXECatalyst9200L covers the switches lazynet targets in production:
-// Catalyst C9200L-48P-4X on IOS XE 17.12.04 (ARM64, CAT9K_LITE_IOSXE image).
-// The fixture is synthetic, built from the documented format of that model and
-// release; replace it with a sanitized real capture when one is available.
-func TestIOSXECatalyst9200L(t *testing.T) {
-	out, err := os.ReadFile("testdata/catalyst_c9200l-48p-4x_17.12.04_show_version.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	v := IOSVersion(string(out))
-	want := Version{Hostname: "acc-sw-01", OS: "IOS-XE", Version: "17.12.04", Model: "C9200L-48P-4X", Serial: "JAE25130ABC", MAC: "3c13.cc4a.1b00", Uptime: "21 weeks, 6 days, 2 hours, 14 minutes"}
-	if v != want {
-		t.Fatalf("got  %+v\nwant %+v", v, want)
-	}
-}
-
-const classicIOS = `Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E8, RELEASE SOFTWARE (fc1)
-Technical Support: http://www.cisco.com/techsupport
-ROM: Bootstrap program is C2960X boot loader
-access-sw2 uptime is 1 year, 2 weeks, 3 days, 5 hours, 1 minute
-System image file is "flash:c2960x-universalk9-mz.152-7.E8.bin"
-cisco WS-C2960X-48FPD-L (APM86XXX) processor (revision D0) with 524288K bytes of memory.
-Processor board ID FOC1951X2AB
-Base ethernet MAC Address       : 70:6D:15:11:22:00
-Model number                    : WS-C2960X-48FPD-L
-System serial number            : FOC1951X2AB
-`
-
-func TestClassicIOSVersion(t *testing.T) {
-	v := IOSVersion(classicIOS)
-	if v.OS != "IOS" || v.Version != "15.2(7)E8" || v.Model != "WS-C2960X-48FPD-L" || v.Serial != "FOC1951X2AB" || v.MAC != "706d.1511.2200" || v.Hostname != "access-sw2" {
-		t.Fatalf("got %+v", v)
-	}
-}
-
-func TestNXOSVersion(t *testing.T) {
-	d := dev("nexus")
-	v := NXOSVersion(d.Exec("show version"))
-	if v.Version != "10.2(6)" || v.Model != "Nexus9000 C93180YC-FX" || v.Serial != "FDO24351XYZ" || v.Hostname != "lab1" || v.Uptime == "" {
-		t.Fatalf("got %+v", v)
-	}
-	if s := InventorySerial(d.Exec("show inventory")); s != "FDO24351XYZ" {
-		t.Fatalf("serial %q", s)
-	}
-	mg := d.Exec("show interface mgmt0")
-	if InterfaceMAC(mg) != "2c4f.52a1.b0c8" || NXOSMgmtIP(mg) != "192.168.100.20/24" {
-		t.Fatalf("mgmt0 parse failed")
-	}
-}
-
-func TestASAVersion(t *testing.T) {
-	v := ASAVersion(dev("asa").Exec("show version"))
-	if v.Version != "9.16(4)19" || v.Model != "ASA5516" || v.Serial != "JAD21430ABC" || v.Hostname != "lab1" || v.Uptime != "41 days 7 hours" || v.MAC != "00a3.8e4b.1c00" {
-		t.Fatalf("got %+v", v)
-	}
 }
 
 func TestInterfaces(t *testing.T) {
@@ -202,20 +136,5 @@ func TestNormalizeMAC(t *testing.T) {
 		if got := NormalizeMAC(in); got != want {
 			t.Errorf("NormalizeMAC(%q) = %q", in, got)
 		}
-	}
-}
-
-func TestPANOSSystemInfo(t *testing.T) {
-	si := PANOSSystemInfo(dev("paloalto").Exec("show system info"))
-	if si.Hostname != "lab1" || si.Model != "PA-440" || si.Serial != "024101001234" || si.Version != "11.1.4-h7" ||
-		si.MAC != "00:50:56:a1:b2:c3" || si.IP != "10.10.0.2" || si.Uptime != "41 days, 6:12:40" {
-		t.Fatalf("got %+v", si)
-	}
-	if !si.Clock.Equal(fixedNow.UTC().Truncate(time.Second)) {
-		t.Fatalf("clock = %v, want %v", si.Clock, fixedNow.UTC())
-	}
-	// "unknown" values are treated as empty.
-	if PANOSSystemInfo("serial: unknown\nip-address: unknown\n").Serial != "" {
-		t.Fatal("unknown serial should be empty")
 	}
 }

@@ -414,7 +414,7 @@ Some terminals don't answer the background-color query that the TUI sends at sta
 ## Development
 
 ```sh
-make test     # unit and integration tests against an emulated Cisco SSH server
+make test     # unit and integration tests against emulated SSH devices
 make build    # static binary in ./lazynet
 make demo     # build and run the TUI in demo mode
 go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # standalone fake device
@@ -429,10 +429,12 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # standa
 | `internal/cli` | Cobra subcommands |
 | `internal/tui` | Bubble Tea interface |
 | `internal/app` | Connection flow, credentials, backups, VLAN change orchestration |
-| `internal/device` | Platform drivers, detection, interface names, VLAN change planning |
-| `internal/transport` | SSH sessions, read-only guard, confirmed change requests, host keys |
-| `internal/parse` | Parsers for `show` output and log timestamps |
-| `internal/mockssh` | SSH server that emulates Cisco CLI behaviour (tests and demo mode) |
+| `internal/platform` | Platform contract and registry: drivers, optional capabilities, badges |
+| `internal/platforms/…` | One package per device family (`cisco/catalyst`, `cisco/nexus`, `cisco/asa`, `paloalto`): driver, parsers and tests |
+| `internal/detect` | Identifies the platform of a new session from the probes each platform declares |
+| `internal/transport` | Vendor-neutral SSH sessions, read-only guard, confirmed change requests, host keys |
+| `internal/parse` | Parsers shared by several platforms (interfaces, logs, clocks) |
+| `internal/mockssh` | SSH server that emulates each platform's CLI (tests and demo mode) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Git backups, audit log, credential cache |
 | `assets/` | Logo, icons and README images ([generator](assets/assets-generator)) |
 | `site/` | Landing page ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), built with Astro |

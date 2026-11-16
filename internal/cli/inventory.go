@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/spf13/cobra"
 )
@@ -33,11 +33,11 @@ func newInventoryCmd(g *globals) *cobra.Command {
 			det := g.app.DetectedPlatforms()
 			t := newTable().Headers("NAME", "HOST", "GROUP", "USER", "TYPE", "DESCRIPTION")
 			for _, d := range inv.Devices {
-				p := d.Platform
-				if p == "" {
-					p = string(det[d.Label()])
+				p, _ := platform.Parse(d.Platform)
+				if p == platform.Unknown {
+					p = det[d.Label()]
 				}
-				t.Row(d.Label(), d.Addr(), d.Group, d.Username, theme.PlatformBadge(p), d.Description)
+				t.Row(d.Label(), d.Addr(), d.Group, d.Username, render.PlatformBadge(p), d.Description)
 			}
 			fmt.Println(t)
 			return nil
@@ -52,7 +52,7 @@ func newInventoryCmd(g *globals) *cobra.Command {
 			if nd.Host == "" {
 				return errors.New("--host is required")
 			}
-			if _, err := device.ParsePlatform(nd.Platform); err != nil {
+			if _, err := platform.Parse(nd.Platform); err != nil {
 				return err
 			}
 			if g.app.Demo {
@@ -71,7 +71,7 @@ func newInventoryCmd(g *globals) *cobra.Command {
 	af.IntVar(&nd.Port, "port", 0, "SSH port (default 22)")
 	af.StringVar(&nd.Group, "group", "", "group name")
 	af.StringVar(&nd.Username, "username", "", "SSH username")
-	af.StringVar(&nd.Platform, "platform", "", "pin platform: catalyst, nexus or asa (default: auto-detect)")
+	af.StringVar(&nd.Platform, "platform", "", "pin platform: "+platform.Names()+" (default: auto-detect)")
 	af.StringVar(&nd.Description, "description", "", "free text")
 
 	var reach bool
@@ -80,7 +80,7 @@ func newInventoryCmd(g *globals) *cobra.Command {
 		Short: "Validate the inventory file (and optionally test TCP reachability)",
 		RunE: func(*cobra.Command, []string) error {
 			inv := g.app.Inv
-			errs := inv.Validate()
+			errs := inv.Validate(func(p string) error { _, err := platform.Parse(p); return err })
 			for _, e := range errs {
 				fmt.Println(theme.Bad.Render("✗ " + e.Error()))
 			}

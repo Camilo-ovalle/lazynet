@@ -15,6 +15,14 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/mockssh"
 )
 
+// testDialect stands in for platform.Dialect(): transport tests cannot import
+// the platform packages (they import transport).
+var testDialect = Dialect{
+	FailedWhenContains: []string{"% Invalid input detected", "ERROR: %", "Invalid syntax."},
+	SessionCommands:    []string{"terminal length 0", "terminal width 511", "terminal pager 0", "set cli pager off"},
+	OperationalPrompt:  func(p string) bool { return strings.Contains(p, "@") },
+}
+
 func startMock(t *testing.T, platform string, unpriv bool) (*mockssh.Server, Options) {
 	t.Helper()
 	dev := mockssh.NewDevice(platform, "lab-"+platform)
@@ -30,6 +38,7 @@ func startMock(t *testing.T, platform string, unpriv bool) (*mockssh.Server, Opt
 		Host: host, Port: p, Username: "admin", Password: "secret",
 		KnownHostsFile: filepath.Join(t.TempDir(), "known_hosts"),
 		DialTimeout:    5 * time.Second, CommandTimeout: 10 * time.Second, LegacySSH: true,
+		Dialect: testDialect,
 	}
 }
 
@@ -161,28 +170,56 @@ func TestCheckHostKeyDoesNotAuthenticate(t *testing.T) {
 	}
 }
 
-func TestPANOSPrompt(t *testing.T) {
-	for p, want := range map[string]bool{
-		"admin@pa-fw1>":         true,
-		"admin@pa-fw1(active)>": true,
-		"ops.user@PA-440-01>":   true,
-		"admin@pa-fw1>  ":       true,
-		"admin@pa-fw1#":         false, // PAN-OS configure mode: never used
-		"core-sw1>":             false, // Cisco user EXEC must stay refused
-		"core-sw1#":             false,
-		"fw/admin>":             false,
-		"admin@pa fw1>":         false,
+func TestHostname(t *testing.T) {
+	for prompt, want := range map[string]string{
+		"core-sw1#":             "core-sw1",
+		"fw-edge/admin#":        "fw-edge",
+		"admin@pa-fw1>":         "pa-fw1",
+		"admin@pa-fw1(active)>": "pa-fw1",
 	} {
-		if got := IsPANOSPrompt(p); got != want {
-			t.Errorf("IsPANOSPrompt(%q) = %v, want %v", p, got, want)
+		if got := (&Conn{prompt: prompt}).Hostname(); got != want {
+			t.Errorf("Hostname(%q) = %q, want %q", prompt, got, want)
 		}
+	}
+}
+
+// A dialect that would loosen the guard is refused before connecting.
+func TestDialRejectsUnsafeDialect(t *testing.T) {
+	_, o := startMock(t, "catalyst", false)
+	for _, d := range []Dialect{
+		{},
+		{FailedWhenContains: []string{"%"}, SessionCommands: []string{"write memory"}},
+		{FailedWhenContains: []string{"%"}, SessionCommands: []string{"configure terminal"}},
+		{FailedWhenContains: []string{"%"}, SessionCommands: []string{"terminal length 0\nreload"}},
+		{FailedWhenContains: []string{"%"}, SessionCommands: []string{"terminal length 0 | append x"}},
+		{FailedWhenContains: []string{"%"}, SessionCommands: []string{"terminal  length 0"}},
+	} {
+		o.Dialect = d
+		if _, err := Dial(o); err == nil || errors.As(err, new(*UnknownHostKeyError)) {
+			t.Errorf("Dial with %+v = %v, want a dialect error", d, err)
+		}
+	}
+}
+
+// Without an operational-prompt rule, a '>' prompt is user EXEC.
+func TestDialOperationalPromptNeedsDialect(t *testing.T) {
+	_, o := startMock(t, "paloalto", false)
+	o.Dialect.OperationalPrompt = nil
+	_, err := Dial(o)
+	var uk *UnknownHostKeyError
+	if errors.As(err, &uk) {
+		_ = TrustHostKey(o.KnownHostsFile, uk)
+		_, err = Dial(o)
+	}
+	if !errors.Is(err, ErrNotPrivileged) {
+		t.Fatalf("got %v, want ErrNotPrivileged", err)
 	}
 }
 
 func TestDialPANOS(t *testing.T) {
 	srv, o := startMock(t, "paloalto", false)
 	c := dialTrusted(t, o)
-	if c.Prompt() != "admin@lab-paloalto>" || c.Hostname() != "lab-paloalto" {
+	if c.Prompt() != "admin@lab-paloalto>" || c.Hostname() != "lab-paloalto" || !c.ReadOnly() {
 		t.Fatalf("prompt %q hostname %q", c.Prompt(), c.Hostname())
 	}
 	if _, err := c.Show("set cli pager off"); err != nil {

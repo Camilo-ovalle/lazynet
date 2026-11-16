@@ -4,11 +4,12 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"strings"
 
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/render"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/charmbracelet/x/ansi"
@@ -53,11 +54,7 @@ func (m *model) content() string {
 		case st.infoErr != nil:
 			return head + theme.Bad.Render(errText(st.infoErr)) + "\n\n" + hint("enter", "retry")
 		case st.info != nil:
-			keys := []string{"r", "refresh", "p", "interface", "v", "VLAN change", "b", "backup"}
-			if st.info.Platform == device.PaloAlto { // info and backups only, for now
-				keys = []string{"r", "refresh", "b", "backup", "4", "backups"}
-			}
-			return head + render.Info(d.Label(), *st.info) + "\n\n" + hint(keys...)
+			return head + render.Info(d.Label(), *st.info) + "\n\n" + hint(m.infoKeys(st.info.Platform)...)
 		}
 		return head + theme.Title.Render(d.Label()) + theme.Dim.Render("  "+d.Addr()) + "\n\n" +
 			hint("enter", "connect and load device information")
@@ -66,9 +63,16 @@ func (m *model) content() string {
 		case st.loading[tabIface]:
 			return m.loadingLine("reading " + st.ifacePort + "…")
 		case st.ifaceErr != nil:
+			if errors.Is(st.ifaceErr, platform.ErrUnsupported) {
+				return theme.Caution.Render(errText(st.ifaceErr))
+			}
 			return theme.Bad.Render(errText(st.ifaceErr)) + "\n\n" + hint("p", "query another interface")
 		case st.iface != nil:
-			out := render.Interface(*st.iface) + "\n\n" + hint("p", "other interface", "r", "refresh", "w", "raw output", "v", "VLAN change")
+			keys := []string{"p", "other interface", "r", "refresh", "w", "raw output"}
+			if m.unsupported(d, platform.CapVlanChange) == nil {
+				keys = append(keys, "v", "VLAN change")
+			}
+			out := render.Interface(*st.iface) + "\n\n" + hint(keys...)
 			if m.showRaw {
 				out += "\n\n" + theme.Dim.Render(st.iface.Raw)
 			}
@@ -83,10 +87,30 @@ func (m *model) content() string {
 	return ""
 }
 
+// infoKeys are the Info tab's key hints: only what the platform supports.
+func (m *model) infoKeys(p platform.ID) []string {
+	keys := []string{"r", "refresh"}
+	for _, k := range []struct {
+		c         platform.Capability
+		key, what string
+	}{
+		{platform.CapInterfaces, "p", "interface"},
+		{platform.CapVlanChange, "v", "VLAN change"},
+		{platform.CapBackup, "b", "backup"},
+	} {
+		if platform.Supports(p, k.c) {
+			keys = append(keys, k.key, k.what)
+		}
+	}
+	return keys
+}
+
 func (m *model) logsContent(st *devState, w int) string {
 	switch {
 	case st.loading[tabLogs]:
 		return m.loadingLine("reading log buffer…")
+	case errors.Is(st.logsErr, platform.ErrUnsupported):
+		return theme.Caution.Render(errText(st.logsErr))
 	case st.logsErr != nil:
 		return theme.Bad.Render(errText(st.logsErr)) + "\n\n" + hint("r", "retry")
 	case st.logs == nil:

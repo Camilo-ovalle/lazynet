@@ -1,7 +1,7 @@
 // Copyright 2026 Camilo Enrique Ovalle Ceron
 // SPDX-License-Identifier: Apache-2.0
 
-package parse
+package paloalto
 
 import (
 	"bufio"
@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// PANOSInfo is what PAN-OS `show system info` reports.
-type PANOSInfo struct {
+// SystemInfo is what PAN-OS `show system info` reports.
+type SystemInfo struct {
 	Hostname string
 	Model    string
 	Serial   string
@@ -21,8 +21,8 @@ type PANOSInfo struct {
 	Clock    time.Time
 }
 
-// PANOSSystemInfo parses `show system info`, a list of "key: value" lines.
-func PANOSSystemInfo(out string) PANOSInfo {
+// ParseSystemInfo parses `show system info`, a list of "key: value" lines.
+func ParseSystemInfo(out string) SystemInfo {
 	kv := map[string]string{}
 	sc := bufio.NewScanner(strings.NewReader(out))
 	for sc.Scan() {
@@ -41,7 +41,7 @@ func PANOSSystemInfo(out string) PANOSInfo {
 		}
 		return s
 	}
-	info := PANOSInfo{
+	info := SystemInfo{
 		Hostname: kv["hostname"],
 		Model:    kv["model"],
 		Serial:   unknown(kv["serial"]),

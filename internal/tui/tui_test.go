@@ -268,3 +268,29 @@ func TestTUIAdhocAndSmallTerminal(t *testing.T) {
 	h.send(tea.WindowSizeMsg{Width: 40, Height: 10})
 	h.expect("resize your terminal")
 }
+
+// A prefilled field behaves as selected: typing replaces the remembered value
+// instead of appending to it ("1/0/25" + "1/0/7" used to become "1/0/251/0/7").
+func TestTUIPrefilledFieldIsReplaced(t *testing.T) {
+	h, _ := newHarness(t)
+	h.key("enter")
+	h.key("2")
+	h.key("1/0/25")
+	h.key("enter")
+	h.expect("GigabitEthernet1/0/25")
+	h.key("v") // the port field is prefilled with 1/0/25
+	h.key("1/0/7")
+	h.key("tab")
+	h.key("20")
+	h.key("enter")
+	h.expect("Confirm configuration change", "interface GigabitEthernet1/0/7")
+	h.key("n")
+
+	// Moving the cursor first keeps the value for editing.
+	h.key("p")
+	h.send(tea.KeyMsg{Type: tea.KeyEnd})
+	h.send(tea.KeyMsg{Type: tea.KeyBackspace})
+	h.key("6")
+	h.key("enter")
+	h.expect("GigabitEthernet1/0/26")
+}

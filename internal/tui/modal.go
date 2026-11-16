@@ -31,6 +31,7 @@ type modal struct {
 	labels   []string
 	inputs   []textinput.Model
 	optional []bool // optional fields don't block Enter-to-submit
+	pristine []bool // prefilled and untouched: typing replaces the value
 	focus    int
 
 	onSubmit func(m *model, values []string) tea.Cmd
@@ -50,13 +51,34 @@ func newInput(title, body string, fields ...[3]string) *modal {
 		ti.CharLimit = 128
 		ti.Width = 36
 		ti.Cursor.SetMode(cursor.CursorStatic) // no blink timers: fewer redraws
+		if f[2] != "" {
+			// Shown as selected, like a pre-selected text field.
+			ti.TextStyle = lipgloss.NewStyle().Background(lipgloss.AdaptiveColor{Light: "#CFE8DD", Dark: "#2A3A40"}).Foreground(theme.Text)
+		}
 		if i == 0 {
 			ti.Focus()
 		}
 		md.labels = append(md.labels, f[0])
 		md.inputs = append(md.inputs, ti)
+		md.pristine = append(md.pristine, f[2] != "")
 	}
 	return md
+}
+
+// touch is called before a key reaches field i. A prefilled field that has
+// not been edited yet behaves as if its text were selected: typing, pasting or
+// deleting replaces it (so a remembered port is not concatenated with the new
+// one), while moving the cursor keeps it for editing.
+func (md *modal) touch(i int, msg tea.KeyMsg) {
+	if i >= len(md.pristine) || !md.pristine[i] {
+		return
+	}
+	switch msg.Type {
+	case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace, tea.KeyDelete, tea.KeyCtrlU, tea.KeyCtrlW:
+		md.inputs[i].SetValue("")
+	}
+	md.pristine[i] = false
+	md.inputs[i].TextStyle = lipgloss.NewStyle()
 }
 
 func newConfirm(title, body string, danger bool, onAnswer func(*model, bool) tea.Cmd) *modal {
@@ -179,6 +201,7 @@ func (m model) updateModal(msg tea.KeyMsg) (model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	md.touch(md.focus, msg)
 	var cmd tea.Cmd
 	md.inputs[md.focus], cmd = md.inputs[md.focus].Update(msg)
 	return m, cmd

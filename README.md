@@ -360,7 +360,7 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # standa
 
 </details>
 
-Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. The release workflow also publishes the signed APT repository to GitHub Pages. It needs the `APT_GPG_PRIVATE_KEY` and `APT_GPG_PASSPHRASE` repository secrets.
+Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. The release workflow also publishes the signed APT repository to GitHub Pages. See [docs/releasing.md](docs/releasing.md) for the one-time setup, the release steps and how the APT repository works.
 
 Bug reports with sanitized `show` output from your devices are the most valuable contribution right now. They become parser test fixtures.
 

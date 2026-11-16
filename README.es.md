@@ -383,7 +383,7 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo
 
 </details>
 
-Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. El workflow de release también publica el repositorio APT firmado en GitHub Pages. Para eso necesita los secretos `APT_GPG_PRIVATE_KEY` y `APT_GPG_PASSPHRASE`.
+Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. El workflow de release también publica el repositorio APT firmado en GitHub Pages. La configuración inicial, los pasos para publicar y el funcionamiento del repositorio APT están en [docs/releasing.md](docs/releasing.md) (en inglés).
 
 Por ahora, la contribución más valiosa son reportes de bugs que incluyan la salida `show` de tus equipos, sin datos sensibles. Esas salidas se convierten en fixtures para los tests de los parsers.
 

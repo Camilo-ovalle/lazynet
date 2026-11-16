@@ -1,21 +1,31 @@
 # Push a tag like v0.1.0 to publish a release:
-#   git tag v0.1.0 && git push origin v0.1.0
+#   git tag -a v0.1.0 -m "lazynet v0.1.0" && git push origin v0.1.0
+#
+# To (re)publish an existing release to the APT repository without building
+# again, run this workflow manually (Actions > release > Run workflow) with
+# the release tag.
 #
 # Required repository secrets for the APT repository:
 #   APT_GPG_PRIVATE_KEY  ASCII-armored private key used to sign the repo
 #   APT_GPG_PASSPHRASE   its passphrase (may be empty)
 # After the first release: Settings > Pages > Deploy from a branch > gh-pages / (root).
-# The repository itself is built by scripts/build-apt-repo.sh.
+# The repository itself is built by scripts/build-apt-repo.sh. See docs/releasing.md.
 name: release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to publish to the APT repository (e.g. v0.1.0)"
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   goreleaser:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,28 +41,39 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: debs
-          path: dist/*.deb
 
   apt-repo:
     needs: goreleaser
+    # Runs after a successful build, or on its own for workflow_dispatch
+    # (where the goreleaser job is skipped).
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    # Never let two publishes race on the gh-pages branch.
+    concurrency:
+      group: apt-repo
+      cancel-in-progress: false
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
+      # The source must be checked out at the workspace root:
+      # actions-gh-pages runs git commands there.
       - uses: actions/checkout@v4
-        with:
-          path: src
-      - name: Check out gh-pages (keeps previous versions)
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: repo
-        continue-on-error: true # first release: branch does not exist yet
-      - uses: actions/download-artifact@v4
-        with:
-          name: debs
-          path: debs
+      - name: Download the .deb packages from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --pattern '*.deb' --dir debs
+      - name: Fetch the published repository (keeps previous versions)
+        run: |
+          mkdir -p _site
+          set +e
+          git ls-remote --exit-code --heads origin gh-pages >/dev/null
+          rc=$?
+          set -e
+          case $rc in
+            0) git fetch --depth 1 origin gh-pages && git archive FETCH_HEAD | tar -x -C _site ;;
+            2) echo "No gh-pages branch yet: this is the first publication." ;;
+            *) echo "could not query gh-pages (exit $rc)"; exit "$rc" ;;
+          esac
       - name: Install apt-ftparchive
         run: sudo apt-get update -qq && sudo apt-get install -y -qq apt-utils
       - name: Import the signing key
@@ -64,12 +85,12 @@ jobs:
       - name: Build and sign the APT repository
         env:
           APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
-        run: sh src/scripts/build-apt-repo.sh debs repo
+        run: sh scripts/build-apt-repo.sh debs _site
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: repo
+          publish_dir: _site
           publish_branch: gh-pages
-          keep_files: true
-          exclude_assets: ".git"
+          keep_files: true # extra safety: never drop files already published
+          commit_message: "apt: publish ${{ env.TAG }}"

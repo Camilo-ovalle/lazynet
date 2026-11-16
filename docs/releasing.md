@@ -9,7 +9,8 @@ This guide covers publishing a release and the APT repository that makes
 git tag v0.1.0 ──► release.yml
                    ├─ goreleaser job ──► GitHub Release: tarballs, .deb, .rpm, checksums.txt
                    │                     (used by install.sh and manual downloads)
-                   └─ apt-repo job ────► gh-pages branch ──► GitHub Pages
+                   └─ apt-repo job ────► downloads the release .debs, signs the repo
+                                         ──► gh-pages branch ──► GitHub Pages
                                          https://camilo-ovalle.github.io/lazynet
 ```
 
@@ -91,6 +92,15 @@ The first release creates the `gh-pages` branch. Then go to *Settings → Pages
 3. Watch the run in *Actions → release*. When it finishes:
    - *Releases* shows the tarballs, `.deb`, `.rpm` and `checksums.txt`;
    - `gh-pages` contains the updated APT repository.
+
+## Republishing the APT repository
+
+If the `apt-repo` job fails after the GitHub Release was created, there's no
+need to tag again. Go to *Actions → release → Run workflow*, keep the `main`
+branch selected, and enter the existing tag (for example `v0.1.0`). This job
+downloads the `.deb` files from that release, rebuilds the repository and
+publishes it. Re-running the failed run instead would reuse the workflow
+file from the tagged commit, including any bug that has since been fixed.
 
 ## Verifying a release
 

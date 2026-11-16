@@ -26,6 +26,7 @@
   --cat: #5fafff;
   --nxs: #d787ff;
   --asa: #ff8787;
+  --pan: #ff9e64;
   --danger: #ff6b6b;
 
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -205,6 +206,7 @@ pre {
 .badge--cat { color: var(--cat); }
 .badge--nxs { color: var(--nxs); }
 .badge--asa { color: var(--asa); }
+.badge--pan { color: var(--pan); }
 
 .sr-only {
   position: absolute;

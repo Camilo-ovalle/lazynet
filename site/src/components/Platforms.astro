@@ -1,11 +1,12 @@
 ---
 // Copyright 2026 Camilo Enrique Ovalle Ceron
 // SPDX-License-Identifier: Apache-2.0
-// Platform names as text badges (no vendor logos: Cisco marks are trademarks).
+// Platform names as text badges (no vendor logos: they are trademarks).
 const platforms = [
   { badge: "CAT", cls: "cat", name: "Catalyst", os: "IOS · IOS-XE" },
   { badge: "NXS", cls: "nxs", name: "Nexus", os: "NX-OS" },
   { badge: "ASA", cls: "asa", name: "ASA", os: "ASA OS" },
+  { badge: "PAN", cls: "pan", name: "Palo Alto", os: "PAN-OS" },
 ];
 ---
 <section class="strip" aria-label="Supported platforms">
@@ -49,7 +50,7 @@ const platforms = [
   .list {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px 40px;
+    gap: 16px 32px;
     list-style: none;
     margin: 0;
     padding: 0;

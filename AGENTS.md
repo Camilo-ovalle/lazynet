@@ -117,9 +117,9 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
 ## Status and open items (as of 2026-11-15)
 
-- The MVP is complete. No release has been tagged yet; GoReleaser and the APT workflow have never run. The APT workflow needs the `APT_GPG_PRIVATE_KEY` and `APT_GPG_PASSPHRASE` secrets.
+- The MVP is complete. No release has been tagged yet. The release process and the APT repository are documented in `docs/releasing.md`. The CI `packaging` job tests them end to end on every PR: a GoReleaser snapshot, a signed APT repository, `apt install`, and `install.sh`. The real release still needs the `APT_GPG_PRIVATE_KEY` and `APT_GPG_PASSPHRASE` secrets, and GitHub Pages enabled on `gh-pages` after the first run.
 - Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
-- The repository is still private. It must be public before `go install`, the install script and the APT repository can work for anyone else.
+- The repository is public.
 - No tests on real devices yet. The Catalyst model and OS version are still unknown; the maintainer will share them.
 - Lab plan: CML-Free on VMware Workstation (Windows host, WSL2 dev environment), with an IOL-L2 (IOS XE 17.18) switch. Its ports are named `Ethernet0/x`, so use `-p e0/1`.
   - VMware NAT network (VMnet8): `192.168.172.0/24`, gateway `.2`.

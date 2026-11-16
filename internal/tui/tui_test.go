@@ -179,6 +179,8 @@ func readAudit(t *testing.T, a *app.App) []audit.Record {
 
 func TestTUIVlanChange(t *testing.T) {
 	h, a := newHarness(t)
+	h.key("enter") // connect first, as a user would: the Info tab is loaded
+	h.expect("C9300-48P")
 	vlanForm := func(port, vlan string) {
 		h.key("v")
 		h.expect("Change access VLAN")
@@ -212,6 +214,13 @@ func TestTUIVlanChange(t *testing.T) {
 	if !strings.Contains(h.status(), "configuration saved") {
 		t.Fatalf("status: %q", h.status())
 	}
+	// Regression: device info must survive the change (it used to reset to
+	// "enter connect and load device information"), and the changed port is
+	// re-read from the device.
+	h.expect("C9300-48P", "FCW2318L0AB")
+	h.key("2")
+	h.key("esc") // close the interface prompt; the reloaded port is shown
+	h.expect("GigabitEthernet1/0/7", "Access VLAN  20")
 
 	// Verify on the device through the UI.
 	h.key("p")

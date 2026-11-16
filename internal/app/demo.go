@@ -22,7 +22,7 @@ const (
 	DemoPassword = "demo"
 )
 
-// StartDemo runs emulated Catalyst, Nexus and ASA devices on localhost and
+// StartDemo runs emulated Catalyst, Nexus, ASA and Palo Alto devices on localhost and
 // returns an App wired to them, with all data under a throw-away directory.
 func StartDemo() (*App, func(), error) {
 	dir, err := os.MkdirTemp("", "lazynet-demo-")
@@ -50,6 +50,7 @@ func StartDemo() (*App, func(), error) {
 		{"access-sw2", "catalyst", "access", "Catalyst access switch (emulated)"},
 		{"dc-n9k-1", "nexus", "datacenter", "Nexus 9000 (emulated)"},
 		{"fw-edge", "asa", "firewalls", "ASA 5516 (emulated)"},
+		{"pa-fw1", "paloalto", "firewalls", "Palo Alto PA-440 (emulated)"},
 	}
 	kh, err := os.OpenFile(a.Paths.KnownHosts, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {

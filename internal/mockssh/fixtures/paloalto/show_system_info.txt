@@ -1,0 +1,40 @@
+
+hostname: {{HOST}}
+ip-address: 10.10.0.2
+public-ip-address: unknown
+netmask: 255.255.255.0
+default-gateway: 10.10.0.254
+ip-assignment: static
+ipv6-address: unknown
+ipv6-link-local-address: fe80::250:56ff:fea1:b2c3/64
+mac-address: 00:50:56:a1:b2:c3
+time: {{NOW}}
+uptime: 41 days, 6:12:40
+family: 400
+model: PA-440
+serial: 024101001234
+cloud-mode: non-cloud
+sw-version: 11.1.4-h7
+global-protect-client-package-version: 0.0.0
+device-dictionary-version: 128-512
+app-version: 8962-9244
+app-release-date: 2026/11/12 17:01:39 PST
+av-version: 0
+av-release-date: unknown
+threat-version: 8962-9244
+threat-release-date: 2026/11/12 17:01:39 PST
+wf-private-version: 0
+wf-private-release-date: unknown
+url-db: paloaltonetworks
+wildfire-version: 0
+wildfire-release-date:
+wildfire-rt: Disabled
+url-filtering-version: 20261116.20151
+logdb-version: 11.1.2
+platform-family: 400
+vpn-disable-mode: off
+multi-vsys: off
+ZTP: Disabled
+operational-mode: normal
+advanced-routing: off
+device-certificate-status: Valid

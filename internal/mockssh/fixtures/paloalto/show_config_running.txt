@@ -1,0 +1,95 @@
+<config version="11.1.0" urldb="paloaltonetworks" detail-version="11.1.2">
+  <mgt-config>
+    <users>
+      <entry name="admin">
+        <phash>$5$emulated$0000000000000000000000000000000000000000000</phash>
+        <permissions>
+          <role-based>
+            <superuser>yes</superuser>
+          </role-based>
+        </permissions>
+      </entry>
+    </users>
+  </mgt-config>
+  <shared>
+    <application/>
+    <application-group/>
+    <service/>
+    <service-group/>
+  </shared>
+  <devices>
+    <entry name="localhost.localdomain">
+      <deviceconfig>
+        <system>
+          <hostname>{{HOST}}</hostname>
+          <ip-address>10.10.0.2</ip-address>
+          <netmask>255.255.255.0</netmask>
+          <default-gateway>10.10.0.254</default-gateway>
+          <timezone>America/Bogota</timezone>
+          <dns-setting>
+            <servers>
+              <primary>10.10.0.53</primary>
+            </servers>
+          </dns-setting>
+        </system>
+      </deviceconfig>
+      <network>
+        <interface>
+          <ethernet>
+            <entry name="ethernet1/1">
+              <layer3>
+                <ip>
+                  <entry name="203.0.113.10/29"/>
+                </ip>
+              </layer3>
+              <comment>outside</comment>
+            </entry>
+            <entry name="ethernet1/2">
+              <layer3>
+                <ip>
+                  <entry name="10.20.0.1/24"/>
+                </ip>
+              </layer3>
+              <comment>inside</comment>
+            </entry>
+          </ethernet>
+        </interface>
+      </network>
+      <vsys>
+        <entry name="vsys1">
+          <zone>
+            <entry name="untrust">
+              <network>
+                <layer3>
+                  <member>ethernet1/1</member>
+                </layer3>
+              </network>
+            </entry>
+            <entry name="trust">
+              <network>
+                <layer3>
+                  <member>ethernet1/2</member>
+                </layer3>
+              </network>
+            </entry>
+          </zone>
+          <rulebase>
+            <security>
+              <rules>
+                <entry name="allow-outbound">
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                </entry>
+              </rules>
+            </security>
+          </rulebase>
+        </entry>
+      </vsys>
+    </entry>
+  </devices>
+</config>

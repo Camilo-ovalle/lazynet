@@ -5,6 +5,7 @@ package tui
 
 import (
 	"fmt"
+	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"strings"
 
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
@@ -52,7 +53,11 @@ func (m *model) content() string {
 		case st.infoErr != nil:
 			return head + theme.Bad.Render(errText(st.infoErr)) + "\n\n" + hint("enter", "retry")
 		case st.info != nil:
-			return head + render.Info(d.Label(), *st.info) + "\n\n" + hint("r", "refresh", "p", "interface", "v", "VLAN change", "b", "backup")
+			keys := []string{"r", "refresh", "p", "interface", "v", "VLAN change", "b", "backup"}
+			if st.info.Platform == device.PaloAlto { // info and backups only, for now
+				keys = []string{"r", "refresh", "b", "backup", "4", "backups"}
+			}
+			return head + render.Info(d.Label(), *st.info) + "\n\n" + hint(keys...)
 		}
 		return head + theme.Title.Render(d.Label()) + theme.Dim.Render("  "+d.Addr()) + "\n\n" +
 			hint("enter", "connect and load device information")

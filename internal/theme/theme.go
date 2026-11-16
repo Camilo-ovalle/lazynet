@@ -49,6 +49,8 @@ func PlatformBadge(p string) string {
 		c, txt = lipgloss.AdaptiveColor{Light: "#6A1B9A", Dark: "#D787FF"}, "NXS"
 	case "asa":
 		c, txt = lipgloss.AdaptiveColor{Light: "#B3261E", Dark: "#FF8787"}, "ASA"
+	case "paloalto":
+		c, txt = lipgloss.AdaptiveColor{Light: "#B4430B", Dark: "#FF9E64"}, "PAN"
 	}
 	return lipgloss.NewStyle().Foreground(c).Bold(true).Render(txt)
 }

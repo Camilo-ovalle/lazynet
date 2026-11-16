@@ -77,7 +77,7 @@ func (s *Server) serve() {
 
 func (s *Server) handleConn(c net.Conn) {
 	defer c.Close()
-	_, chans, reqs, err := ssh.NewServerConn(c, s.cfg)
+	sc, chans, reqs, err := ssh.NewServerConn(c, s.cfg)
 	if err != nil {
 		return
 	}
@@ -104,14 +104,14 @@ func (s *Server) handleConn(c net.Conn) {
 			}
 		}()
 		<-shell
-		s.cli(ch)
+		s.cli(ch, sc.User())
 		_ = ch.Close()
 	}
 }
 
 // cli echoes input byte by byte (like a real device) and runs each line.
-func (s *Server) cli(ch ssh.Channel) {
-	sess := &session{d: s.Device, mode: modePriv}
+func (s *Server) cli(ch ssh.Channel, user string) {
+	sess := &session{d: s.Device, mode: modePriv, user: user}
 	if s.Device.Unprivileged {
 		sess.mode = modeExec
 	}

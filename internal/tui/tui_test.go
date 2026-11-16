@@ -294,3 +294,22 @@ func TestTUIPrefilledFieldIsReplaced(t *testing.T) {
 	h.key("enter")
 	h.expect("GigabitEthernet1/0/26")
 }
+
+func TestTUIPaloAlto(t *testing.T) {
+	h, _ := newHarness(t)
+	for range 4 { // access-sw2 -> core-sw1 -> dc-n9k-1 -> fw-edge -> pa-fw1
+		h.key("j")
+	}
+	h.key("enter")
+	h.expect("pa-fw1", "PAN", "PA-440", "PAN-OS 11.1.4-h7", "024101001234")
+	if strings.Contains(h.screen(), "VLAN change") {
+		t.Fatal("VLAN change must not be offered for a Palo Alto")
+	}
+	h.key("4")
+	h.key("b")
+	if !strings.Contains(h.status(), "backup of pa-fw1 saved") {
+		t.Fatalf("status: %q", h.status())
+	}
+	h.key("3")
+	h.expect("Palo Alto support covers device info and configuration backups")
+}

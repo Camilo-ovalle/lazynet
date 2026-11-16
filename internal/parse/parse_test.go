@@ -4,6 +4,7 @@
 package parse
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -21,6 +22,22 @@ func dev(p string) *mockssh.Device {
 func TestIOSXEVersion(t *testing.T) {
 	v := IOSVersion(dev("catalyst").Exec("show version"))
 	want := Version{Hostname: "lab1", OS: "IOS-XE", Version: "17.09.04a", Model: "C9300-48P", Serial: "FCW2318L0AB", MAC: "706d.15a2.3b80", Uptime: "12 weeks, 3 days, 4 hours, 51 minutes"}
+	if v != want {
+		t.Fatalf("got  %+v\nwant %+v", v, want)
+	}
+}
+
+// TestIOSXECatalyst9200L covers the switches lazynet targets in production:
+// Catalyst C9200L-48P-4X on IOS XE 17.12.04 (ARM64, CAT9K_LITE_IOSXE image).
+// The fixture is synthetic, built from the documented format of that model and
+// release; replace it with a sanitized real capture when one is available.
+func TestIOSXECatalyst9200L(t *testing.T) {
+	out, err := os.ReadFile("testdata/catalyst_c9200l-48p-4x_17.12.04_show_version.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := IOSVersion(string(out))
+	want := Version{Hostname: "acc-sw-01", OS: "IOS-XE", Version: "17.12.04", Model: "C9200L-48P-4X", Serial: "JAE25130ABC", MAC: "3c13.cc4a.1b00", Uptime: "21 weeks, 6 days, 2 hours, 14 minutes"}
 	if v != want {
 		t.Fatalf("got  %+v\nwant %+v", v, want)
 	}

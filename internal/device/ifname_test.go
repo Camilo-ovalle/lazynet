@@ -18,6 +18,8 @@ func TestNormalizeInterface(t *testing.T) {
 		{"g0/1", Catalyst, "GigabitEthernet0/1"},
 		{"fa0/24", Catalyst, "FastEthernet0/24"},
 		{"te1/1/1", Catalyst, "TenGigabitEthernet1/1/1"},
+		{"te1/1/4", Catalyst, "TenGigabitEthernet1/1/4"}, // C9200L-48P-4X uplinks
+		{"1/0/48", Catalyst, "GigabitEthernet1/0/48"},
 		{"tw1/0/3", Catalyst, "TwoGigabitEthernet1/0/3"},
 		{"1/1", Nexus, "Ethernet1/1"},
 		{"eth1/49", Nexus, "Ethernet1/49"},

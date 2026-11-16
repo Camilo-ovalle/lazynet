@@ -1,0 +1,47 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64 arm64
+Codename: stable
+Components: main
+Date: Mon, 16 Nov 2026 00:51:40 +0000
+Description: lazynet: TUI and CLI for Cisco Catalyst, Nexus and ASA
+Label: lazynet
+Origin: lazynet
+Suite: stable
+MD5Sum:
+ 662f740f9231f9fd55bdd0512b0f1a29              729 main/binary-amd64/Packages
+ 6291e77633eef0ea0ef6ed8e6d7f6637              529 main/binary-amd64/Packages.gz
+ c790bfa67395a99c12d524a79351b36f              729 main/binary-arm64/Packages
+ 7aca5fcf0558aa7b4461557174ccbaa1              527 main/binary-arm64/Packages.gz
+SHA1:
+ dd87dfb98c00d6987f5f1c868ea8e7dd429b62a7              729 main/binary-amd64/Packages
+ bcc3d6605448657c20b54cbf46ff7c190933489d              529 main/binary-amd64/Packages.gz
+ af78b43a0c35e50fc9474453a0013ab0504486ab              729 main/binary-arm64/Packages
+ 195256fec6cd27af4593a857338c550ae63e8208              527 main/binary-arm64/Packages.gz
+SHA256:
+ 6317fcb5d4769813baed1f5d3ec351401210670e4636511934f6f83d0186f511              729 main/binary-amd64/Packages
+ ffc9282b7a244a5aaf8435355a0dd1a204d32a33b8b5550a5194d31c801560d5              529 main/binary-amd64/Packages.gz
+ cb2025e944aa323767ceaf02d52c745253cff087546f3d51dae9308695050f40              729 main/binary-arm64/Packages
+ ae0edbcd393007e445a58b954f698f94cf8a7bde2f240555c845141828d420ca              527 main/binary-arm64/Packages.gz
+SHA512:
+ 03d370b28ceb9657755efd1b7785c15e8002ca89271e08797d68b0222d19a0d5815a6c8bdd915b37c9934548d6ac2326436be229bf4ec7e98703ce654bfc8595              729 main/binary-amd64/Packages
+ 15570c1c9d3691edb69b64df4641b828ab2275c86b30ae053598c45b0f958dcca3809fe2823f07c55df8cc357bb0123813fbb837613b548ee55f391560901387              529 main/binary-amd64/Packages.gz
+ 1b290b659591f30377594402fc0b8dd2ab19a2ee1836d525680b06b2145ef5963f00cfd6fd88aace6561f9c778c177c70743579857bfd54a6d19ff24bfed3ebf              729 main/binary-arm64/Packages
+ ada0b6fbb088157eb3c05e52d32e45e4ebdcb5e4e16e85f9a68223acd3a43abb529efdeffe53f4230e55317f6175655d517dc7d954f05916439642b235f0f107              527 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEcWWECzPPWF03hoSnk1qIA2qSa7YFAmr6U54ACgkQk1qIA2qS
+a7ZADRAAjP+j8rJ6G0HyHG+oasZ/LIZCmZAVKL9OUwWcdGhbKpvCjDMZe0R6kIFi
+XnTuFE9E7v+XTZUPqC7Q8EHh6mnxP/BebRMHsPFyViZgYVy83zAuvhGjCQaC61Eo
+5zn4hgEcMzKbqn10tbz4goE1Pj7At/b1R4uCt/Eng+BmLIHz2VLabx0Ku9+hOYyt
+F2zvjhCVA0MVodX80oiSBw1MEPUuKn1mueDzEMBtNWx6Rw/QZW+GguYhsOP/iexG
+5ABdq1lUl0SetFs+SIzAUUWbWlLeE0t1KcW8yZYKnIiYi3Kx8cYT5t7/UlRHTQC/
+BPxtjePJYrvMTheFtL6dt8dE/ltEhqPls7sRx5A/hMibgsIWIqJrXf8+eDXN8XJr
+03kYe2yRsT+OGH95VAWh2nxfwKUap3V4n6S8O9WLg8PHWj+1HS5oWJgAZHHneEOk
+nA5cY2ZuNKlptjjdduE2/khW2IfJR+w8MjWTGxqSR0AzkSo6VGHw6vWQgIki/ah/
+Sr8ZXxumA8Qsw4u2LOmeN8fSpv7BDDMKmWd4cBwF7vTYAFaQqL8nbvMyF9tcis4J
+JHIq4fcYuy5cdjtt0I3tW50KCBQUFZLl8sFZ1AbScTbFsZX94DQB8rvyO8Mn0qS7
+IvlxDsZ+LHZsBHL0uvMBlg5zvyQpn9cjYkuE7XAlITyVMW197+Y=
+=kE9G
+-----END PGP SIGNATURE-----

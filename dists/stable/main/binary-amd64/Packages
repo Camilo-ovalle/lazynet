@@ -1,0 +1,17 @@
+Package: lazynet
+Architecture: amd64
+Version: 0.1.0
+Priority: optional
+Section: net
+Maintainer: Camilo Enrique Ovalle Ceron <noreply@github.com>
+Installed-Size: 11272
+Filename: pool/main/l/lazynet/lazynet_0.1.0_linux_amd64.deb
+Size: 4656094
+MD5sum: f11824dc1d1ca048a5c550928c7c39ee
+SHA1: c31ead0bb4d68580d3d13bb058bb608c4cc6828f
+SHA256: f7dc25472063f2e0c348ed599713b1b615d84ec7082b55c989bcc9620ed2128e
+SHA512: 0c5f74039e26e2ac3daed4a26a2c936ea29e74c7292596b5a1a23efce65566c160b40825eba973f521917076a1709491d18b482eaebffbcb28f8afed9dbd6081
+Homepage: https://github.com/Camilo-ovalle/lazynet
+Description: Lazy terminal UI and CLI for Cisco Catalyst, Nexus and ASA.
+ Read-only by default; VLAN changes always require confirmation.
+

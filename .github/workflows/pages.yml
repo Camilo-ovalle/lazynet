@@ -1,0 +1,98 @@
+# Builds and deploys https://camilo-ovalle.github.io/lazynet
+#
+# One GitHub Pages site serves two things:
+#   - the landing page (Astro, site/), with terminal recordings made by VHS;
+#   - the APT repository (dists/, pool/, lazynet.gpg). release.yml publishes it
+#     to the gh-pages branch, which is only used as storage now.
+# This workflow merges both into one artifact and deploys it.
+# It requires Settings > Pages > Source: "GitHub Actions".
+name: pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "assets/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch: # also dispatched by release.yml after a new APT publication
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build lazynet for the recordings
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          CGO_ENABLED=0 go build -o "$HOME/.local/bin/lazynet" ./cmd/lazynet
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Recordings are optional: if VHS fails, the site falls back to the
+      # static mockups instead of blocking the deploy (and the APT repository).
+      - name: Install VHS
+        id: vhs
+        continue-on-error: true
+        uses: charmbracelet/vhs-action@v2
+        with:
+          install-fonts: "true"
+      - name: Record the terminal demos
+        if: steps.vhs.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p site/public/media
+          for tape in tui vlan; do vhs "site/tapes/$tape.tape"; done
+          ls -lh site/public/media
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build the site
+        working-directory: site
+        run: npm ci && npm run build
+      - name: Add the APT repository from gh-pages
+        run: |
+          set +e
+          git ls-remote --exit-code --heads origin gh-pages >/dev/null
+          rc=$?
+          set -e
+          case $rc in
+            0) git fetch --depth 1 origin gh-pages
+               # --skip-old-files: the site wins if a path ever collides.
+               git archive FETCH_HEAD | tar -x -C site/dist --skip-old-files ;;
+            2) echo "No gh-pages branch yet: deploying the site without the APT repository." ;;
+            *) echo "could not query gh-pages (exit $rc)"; exit "$rc" ;;
+          esac
+          ls site/dist
+      - name: Check the APT repository survived the merge
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            for f in lazynet.gpg dists/stable/InRelease dists/stable/Release; do
+              test -s "site/dist/$f" || { echo "missing $f"; exit 1; }
+            done
+            gpgv --keyring site/dist/lazynet.gpg site/dist/dists/stable/InRelease
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

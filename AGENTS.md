@@ -47,6 +47,7 @@ CI (`.github/workflows/ci.yml`) runs gofmt, `go vet`, `go test -race`, a static 
 | `internal/inventory`, `internal/config` | YAML inventory and settings, XDG paths (`LAZYNET_HOME` override) |
 | `internal/render`, `internal/theme` | Output rendering shared by the CLI and the TUI; Lip Gloss palette |
 | `assets/` | README images and their generator (`assets/assets-generator/README.md`) |
+| `site/` | Landing page (Astro, Node 24). Content and real command outputs are in `site/src/data/content.ts`; VHS recordings in `site/tapes/` |
 
 ## Safety rules (non-negotiable)
 
@@ -87,6 +88,14 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 - TUI tests (`internal/tui/tui_test.go`) drive the model synchronously through a harness. Commands slower than 400 ms are treated as timers and dropped. Keep cursors static and avoid real timers so the suite stays fast (about 0.6 s).
 - `LAZYNET_SNAPSHOT=1 go test ./internal/tui -run TestTUIBrowse -v` prints a rendered screen.
 
+## Website (`site/`)
+
+- Astro 7, plain CSS with tokens from the brand palette (`site/src/styles/global.css`), and no UI framework. Keep the little JavaScript in `Base.astro` (tabs, copy, video play/pause).
+- The layout takes its structure from k6.io, but the code, copy and graphics are all original. Don't copy third-party site code, text or artwork. Cisco platforms appear as text badges, never as logos.
+- Command outputs in `content.ts` are real captures from `lazynet --demo`. Only the demo IP 127.0.0.1 is shown as 10.10.0.11. Recapture them when the CLI output changes. Never show commands or keys that don't exist.
+- Recordings come from `site/tapes/*.tape` and are made in CI by `pages.yml`. If they're missing, `Media.astro` falls back to the mockup PNGs in `assets/`.
+- Before committing site changes, run `cd site && npm run build`, then check desktop (1440px) and mobile (390px) screenshots for horizontal overflow.
+
 ## Licensing and authorship
 
 - lazynet is a personal project of Camilo Enrique Ovalle Ceron, built on his own equipment and time. Keep it that way: never add employer data, configurations, hostnames, IPs or serials. Sanitize every fixture.
@@ -123,7 +132,7 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
   The repository signing key fingerprint is `7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6`; the README publishes it.
   Releases: tag `vX.Y.Z` and push it. If the APT publication fails, rerun it with *Actions → release → Run workflow* and the tag. See `docs/releasing.md`.
-- The GitHub Pages root has no page yet. A landing page (Astro) is planned, and it must not break the APT repository files on `gh-pages`.
+- The landing page (`site/`) and the APT repository share GitHub Pages. `pages.yml` builds the site, records the VHS demos, merges the APT files from `gh-pages` (storage only) and checks that `InRelease` still verifies before deploying. Pages source must be *GitHub Actions*.
 - Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
 - The repository is public.
 - No tests on real devices yet. The Catalyst model and OS version are still unknown; the maintainer will share them.

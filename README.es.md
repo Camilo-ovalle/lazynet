@@ -455,6 +455,7 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo
 | `internal/mockssh` | Servidor SSH que emula el CLI de Cisco (tests y modo demo) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Backups en git, log de auditoría, caché de credenciales |
 | `assets/` | Logo, íconos e imágenes del README ([generador](assets/assets-generator)) |
+| `site/` | Página de presentación ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), hecha con Astro |
 
 </details>
 

@@ -1,0 +1,68 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+// A terminal window frame. The slot is the window body.
+interface Props {
+  title?: string;
+  class?: string;
+  flush?: boolean;
+}
+const { title = "lazynet", class: cls, flush = false } = Astro.props;
+---
+<div class:list={["term", cls, { flush }]}>
+  <div class="term-bar" aria-hidden="true">
+    <span class="dots"><i></i><i></i><i></i></span>
+    <span class="term-title">{title}</span>
+  </div>
+  <div class="term-body"><slot /></div>
+</div>
+
+<style>
+  .term {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.04) inset,
+      0 30px 80px -20px rgb(0 0 0 / 0.65);
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 40px;
+    padding: 0 16px;
+    background: #161e28;
+    border-bottom: 1px solid var(--border);
+  }
+  .dots {
+    display: flex;
+    gap: 7px;
+  }
+  .dots i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #3a4554;
+  }
+  .term-title {
+    flex: 1;
+    text-align: center;
+    margin-right: 45px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .term-body {
+    position: relative;
+  }
+  .flush .term-body :global(img),
+  .flush .term-body :global(video) {
+    width: 100%;
+    height: auto;
+  }
+</style>

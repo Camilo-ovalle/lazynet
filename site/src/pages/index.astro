@@ -1,0 +1,35 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Hero from "../components/Hero.astro";
+import Platforms from "../components/Platforms.astro";
+import Personas from "../components/Personas.astro";
+import Commands from "../components/Commands.astro";
+import Showcase from "../components/Showcase.astro";
+import Safety from "../components/Safety.astro";
+import Install from "../components/Install.astro";
+import Features from "../components/Features.astro";
+import Cta from "../components/Cta.astro";
+import Footer from "../components/Footer.astro";
+
+---
+<Base
+  title="lazynet — a lazy terminal UI for Cisco Catalyst, Nexus and ASA"
+  description="Inspect Cisco devices, read logs by time range, back up configs and change access VLANs safely from one terminal. Read-only by design. Open source."
+>
+  <Header />
+  <main id="main">
+    <Hero />
+    <Platforms />
+    <Personas />
+    <Commands />
+    <Showcase />
+    <Safety />
+    <Install />
+    <Features />
+    <Cta />
+  </main>
+  <Footer />
+</Base>

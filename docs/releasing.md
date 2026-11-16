@@ -9,10 +9,19 @@ This guide covers publishing a release and the APT repository that makes
 git tag v0.1.0 ──► release.yml
                    ├─ goreleaser job ──► GitHub Release: tarballs, .deb, .rpm, checksums.txt
                    │                     (used by install.sh and manual downloads)
-                   └─ apt-repo job ────► downloads the release .debs, signs the repo
-                                         ──► gh-pages branch ──► GitHub Pages
-                                         https://camilo-ovalle.github.io/lazynet
+                   ├─ apt-repo job ────► downloads the release .debs, signs the repo
+                   │                     ──► gh-pages branch (storage only)
+                   └─ pages job ───────► dispatches pages.yml on main
+
+pages.yml ──► landing page (site/, Astro + VHS recordings)
+              + APT files from gh-pages ──► GitHub Pages
+                                            https://camilo-ovalle.github.io/lazynet
 ```
+
+The landing page and the APT repository share one GitHub Pages site.
+pages.yml builds the site, copies the APT files from `gh-pages` next to it,
+checks that `InRelease` still verifies, and deploys the result. It also runs
+on its own whenever `site/` or `assets/` change on `main`.
 
 An APT repository is a set of static files served over HTTPS, so GitHub Pages
 can host it. `scripts/build-apt-repo.sh` generates them:
@@ -71,11 +80,12 @@ Go to GitHub, then *Settings → Secrets and variables → Actions → New repos
 Afterwards, delete the local `lazynet-apt-private.asc` file, or move it to
 your backup.
 
-### 3. Enable GitHub Pages (after the first release)
+### 3. Enable GitHub Pages
 
-The first release creates the `gh-pages` branch. Then go to *Settings → Pages
-→ Build and deployment → Deploy from a branch* and select `gh-pages`, folder
-`/ (root)`. Later releases update the branch and Pages redeploys on its own.
+Go to *Settings → Pages → Build and deployment → Source* and select
+**GitHub Actions**. `gh-pages` stays as the storage branch for the APT
+repository, but GitHub no longer serves it directly; pages.yml deploys it
+together with the landing page.
 
 ## Cutting a release
 

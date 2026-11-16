@@ -1,0 +1,135 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Icon from "./Icon.astro";
+import Media from "./Media.astro";
+import CopyButton from "./CopyButton.astro";
+import { repo } from "../data/content";
+
+---
+<section class="hero">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="container grid">
+    <div class="copy-col">
+      <h1>Operate your Cisco network <span class="accent">the lazy way</span>.</h1>
+      <p class="lead">
+        A fast terminal UI and CLI for <strong>Catalyst</strong>, <strong>Nexus</strong> and <strong>ASA</strong>.
+        Inspect devices, read logs by time range and back up configs without remembering every{" "}
+        <code>show</code> command. Read-only by design.
+      </p>
+      <div class="ctas">
+        <a class="btn btn--primary" href="#install"><Icon name="download" size={18} /> Install lazynet</a>
+        <a class="btn btn--ghost" href={repo}><Icon name="github" size={18} /> View on GitHub</a>
+      </div>
+      <div class="try">
+        <span class="try-label">No network needed:</span>
+        <div class="try-cmd">
+          <code><span class="prompt">$</span>lazynet --demo</code>
+          <CopyButton target="hero-demo-cmd" />
+          <span id="hero-demo-cmd" hidden>lazynet --demo</span>
+        </div>
+      </div>
+    </div>
+    <div class="media-col">
+      <Media
+        name="tui"
+        poster="brand/lazynet-mockup-terminal.png"
+        alt="lazynet TUI: device list grouped by role and the Info tab of a Catalyst 9300"
+        eager
+      />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding-block: clamp(56px, 9vw, 112px) clamp(64px, 9vw, 120px);
+    overflow: hidden;
+  }
+  .glow {
+    position: absolute;
+    inset: -30% -10% auto auto;
+    width: 900px;
+    height: 900px;
+    background:
+      radial-gradient(closest-side, var(--mint-glow), transparent 70%),
+      radial-gradient(closest-side at 70% 60%, var(--amber-glow), transparent 70%);
+    filter: blur(20px);
+    pointer-events: none;
+  }
+  .grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.38fr);
+    gap: clamp(40px, 4vw, 64px);
+    align-items: center;
+  }
+  h1 {
+    font-size: clamp(40px, 5vw, 66px);
+    font-weight: 850;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+  }
+  .accent {
+    color: var(--mint);
+  }
+  .lead {
+    margin-top: 24px;
+    max-width: 560px;
+    font-size: clamp(17px, 1.8vw, 20px);
+    color: var(--text-2);
+  }
+  .lead strong {
+    color: var(--text);
+    font-weight: 650;
+  }
+  .lead code {
+    font-size: 0.9em;
+    color: var(--amber);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 36px;
+  }
+  .try {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .try-cmd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .try-cmd code {
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .prompt {
+    color: var(--mint);
+    margin-right: 6px;
+    user-select: none;
+  }
+  .media-col {
+    min-width: 0;
+  }
+  @media (max-width: 1100px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .lead {
+      max-width: none;
+    }
+  }
+</style>

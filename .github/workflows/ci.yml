@@ -68,3 +68,19 @@ jobs:
           sleep 1
           LAZYNET_BASE_URL=http://127.0.0.1:8081 LAZYNET_VERSION="$ver" LAZYNET_INSTALL_DIR="$HOME/bin" sh scripts/install.sh
           "$HOME/bin/lazynet" version
+
+  # The landing page must always build (recordings are only made on deploy).
+  site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build

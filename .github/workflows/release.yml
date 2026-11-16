@@ -8,8 +8,9 @@
 # Required repository secrets for the APT repository:
 #   APT_GPG_PRIVATE_KEY  ASCII-armored private key used to sign the repo
 #   APT_GPG_PASSPHRASE   its passphrase (may be empty)
-# After the first release: Settings > Pages > Deploy from a branch > gh-pages / (root).
-# The repository itself is built by scripts/build-apt-repo.sh. See docs/releasing.md.
+# The APT repository is built by scripts/build-apt-repo.sh and stored on the
+# gh-pages branch. pages.yml then deploys it together with the landing page
+# (Settings > Pages > Source: GitHub Actions). See docs/releasing.md.
 name: release
 on:
   push:
@@ -94,3 +95,19 @@ jobs:
           publish_branch: gh-pages
           keep_files: true # extra safety: never drop files already published
           commit_message: "apt: publish ${{ env.TAG }}"
+
+  # Redeploy the site so the new packages are served (gh-pages is storage only).
+  # pages.yml is dispatched on main instead of being called from here: the
+  # github-pages environment only accepts deployments from main, and this
+  # workflow runs on a tag. GITHUB_TOKEN is allowed to dispatch workflows.
+  pages:
+    needs: apt-repo
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Redeploy the site with the new packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main

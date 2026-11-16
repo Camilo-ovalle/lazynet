@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/Camilo-ovalle/lazynet/internal/app"
@@ -210,7 +211,36 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print the lazynet version",
 		Run: func(*cobra.Command, []string) {
-			fmt.Printf("lazynet %s (commit %s, built %s)\n", Version, Commit, Date)
+			v, c, d := buildInfo()
+			fmt.Printf("lazynet %s (commit %s, built %s)\n", v, c, d)
 		},
 	}
+}
+
+// buildInfo returns the version, commit and build date. Release builds get
+// them from -ldflags. Otherwise they come from the information the Go
+// toolchain embeds:
+// - `go install …@v0.1.0` records the module version;
+// - a `go build` inside a git checkout records the revision and its time.
+func buildInfo() (version, commit, date string) {
+	version, commit, date = Version, Commit, Date
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	if version == "dev" && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		version = strings.TrimPrefix(bi.Main.Version, "v")
+	}
+	for _, s := range bi.Settings {
+		switch {
+		case s.Key == "vcs.revision" && commit == "none":
+			commit = s.Value
+			if len(commit) > 7 {
+				commit = commit[:7]
+			}
+		case s.Key == "vcs.time" && date == "unknown":
+			date = s.Value
+		}
+	}
+	return
 }

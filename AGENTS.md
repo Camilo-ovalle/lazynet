@@ -37,7 +37,7 @@ CI (`.github/workflows/ci.yml`) runs gofmt, `go vet`, `go test -race`, a static 
 | `internal/cli` | Cobra subcommands, terminal prompter (reads `/dev/tty`) |
 | `internal/tui` | Bubble Tea model, view, modals, async ops, prompter bridge |
 | `internal/app` | Connection flow, credential prompting, backups, VLAN orchestration, `--demo` |
-| `internal/device` | Platform detection, drivers (catalyst/nexus/asa), interface-name normalization, VLAN change planning |
+| `internal/device` | Platform detection, drivers (catalyst/nexus/asa/paloalto), interface-name normalization, VLAN change planning |
 | `internal/transport` | scrapligo session over crypto/ssh, read-only guard, `ChangeRequest`, host keys (TOFU) |
 | `internal/parse` | Regex parsers for `show` output and log timestamps |
 | `internal/mockssh` | SSH server that emulates Cisco CLI (tests, `--demo`, hidden `mock` command); fixtures in `fixtures/<platform>/` |
@@ -54,7 +54,7 @@ CI (`.github/workflows/ci.yml`) runs gofmt, `go vet`, `go test -race`, a static 
 These rules are the point of the project. Do not weaken them, and do not add ways around them.
 
 1. **Everything is read-only except the access-VLAN change.**
-   - `transport.CheckReadOnly` only allows `show …` and session settings (`terminal length 0`, `terminal width N`, `terminal pager 0`).
+   - `transport.CheckReadOnly` only allows `show …` and session paging settings (`terminal length 0`, `terminal width N`, `terminal pager 0`, and PAN-OS `set cli pager off`).
    - It rejects control characters, `| redirect`, `| tee`, `| append`, `| save` and `>`.
    - A new feature must use `show` commands only.
 2. **Configuration changes only go through `transport.ChangeRequest`.**
@@ -79,7 +79,9 @@ These rules are the point of the project. Do not weaken them, and do not add way
    - A changed key is a hard error.
 6. **Privilege 15 is required.** A `>` prompt must produce a clear error (`ErrNotPrivileged`).
 
-Out of scope for now: restoring backups, a syslog server as a log source, `enable` secret, jump hosts, VLAN changes on Nexus/ASA.
+Out of scope for now: restoring backups, a syslog server as a log source, `enable` secret, jump hosts, VLAN changes on Nexus/ASA, Palo Alto interfaces/logs and any change on Palo Alto (`Conn.Apply` refuses PAN-OS sessions).
+
+Palo Alto: a PAN-OS operational prompt (`user@host>` or `user@host(state)>`) is the only `>` prompt accepted. Cisco hostnames cannot contain `@`, so a Cisco user-EXEC login is still refused (`transport.IsPANOSPrompt`).
 
 ## Testing conventions
 

@@ -1,13 +1,14 @@
 // Copyright 2026 Camilo Enrique Ovalle Ceron
 // SPDX-License-Identifier: Apache-2.0
 
-// Package device implements per-platform drivers (Catalyst, Nexus, ASA):
-// detection, information gathering and the guarded VLAN change workflow.
+// Package device implements per-platform drivers (Catalyst, Nexus, ASA and
+// Palo Alto): detection, information gathering and the guarded VLAN change
+// workflow.
 package device
 
 import "fmt"
 
-// Platform identifies a Cisco device family.
+// Platform identifies a device family.
 type Platform string
 
 const (
@@ -15,15 +16,18 @@ const (
 	Catalyst Platform = "catalyst" // IOS and IOS-XE switches
 	Nexus    Platform = "nexus"    // NX-OS
 	ASA      Platform = "asa"      // Adaptive Security Appliance
+	PaloAlto Platform = "paloalto" // PAN-OS firewalls (info and backups)
 )
 
 // ParsePlatform validates a user-provided platform name.
 func ParsePlatform(s string) (Platform, error) {
 	switch Platform(s) {
-	case Catalyst, Nexus, ASA, Unknown:
+	case Catalyst, Nexus, ASA, PaloAlto, Unknown:
 		return Platform(s), nil
+	case "panos", "pan-os":
+		return PaloAlto, nil
 	}
-	return Unknown, fmt.Errorf("unknown platform %q (use catalyst, nexus or asa)", s)
+	return Unknown, fmt.Errorf("unknown platform %q (use catalyst, nexus, asa or paloalto)", s)
 }
 
 // Title is the human name of the platform.
@@ -35,6 +39,8 @@ func (p Platform) Title() string {
 		return "Nexus"
 	case ASA:
 		return "ASA"
+	case PaloAlto:
+		return "Palo Alto"
 	}
 	return "Unknown"
 }

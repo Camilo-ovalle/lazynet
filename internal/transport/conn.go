@@ -27,8 +27,16 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-//go:embed cisco.yaml
+//go:embed cli.yaml
 var platformDef []byte
+
+// panosPrompt matches PAN-OS operational mode: "admin@pa-fw1>" and, on HA
+// pairs, "admin@pa-fw1(active)>". Cisco hostnames cannot contain '@', so a
+// Cisco user-EXEC prompt ("sw1>") never matches and is still refused.
+var panosPrompt = regexp.MustCompile(`^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+(?:\([A-Za-z0-9-]+\))?>$`)
+
+// IsPANOSPrompt reports whether prompt is a PAN-OS operational-mode prompt.
+func IsPANOSPrompt(prompt string) bool { return panosPrompt.MatchString(strings.TrimSpace(prompt)) }
 
 // Errors returned by Dial, classified so the UI can react (re-prompt for a
 // password, ask to trust a host key, ...).
@@ -72,9 +80,15 @@ type Conn struct {
 	d      *network.Driver
 	prompt string
 	addr   string
+	panos  bool // PAN-OS operational mode: read-only, Apply is refused
 }
 
-// Dial opens the session and verifies the login landed at privilege 15.
+// ErrChangesUnsupported is returned by Apply on sessions where lazynet never
+// makes configuration changes (PAN-OS).
+var ErrChangesUnsupported = errors.New("configuration changes are not supported on this platform")
+
+// Dial opens the session and verifies the login landed where lazynet can work:
+// privilege 15 ("#") on Cisco, or operational mode on PAN-OS.
 func Dial(o Options) (*Conn, error) {
 	if o.Port == 0 {
 		o.Port = 22
@@ -121,12 +135,19 @@ func Dial(o Options) (*Conn, error) {
 		return nil, fmt.Errorf("reading prompt: %w", err)
 	}
 	prompt = strings.TrimSpace(prompt)
-	if strings.HasSuffix(prompt, ">") {
+	panos := IsPANOSPrompt(prompt)
+	switch {
+	case panos:
+		// PAN-OS operational mode is where lazynet works: never try to
+		// "escalate" from it (there is no enable on PAN-OS).
+		d.CurrentPriv, d.DefaultDesiredPriv = "exec", "exec"
+	case strings.HasSuffix(prompt, ">"):
 		_ = d.Channel.Close()
 		return nil, ErrNotPrivileged
+	default:
+		d.CurrentPriv = "privilege-exec"
 	}
-	d.CurrentPriv = "privilege-exec"
-	return &Conn{d: d, prompt: prompt, addr: addr}, nil
+	return &Conn{d: d, prompt: prompt, addr: addr, panos: panos}, nil
 }
 
 // legacyAlgorithms is every modern algorithm (preferred) followed by the
@@ -274,8 +295,16 @@ func ensureFile(path string) error {
 // Prompt returns the device prompt seen at login (e.g. "core-sw1#").
 func (c *Conn) Prompt() string { return c.prompt }
 
-// Hostname is the prompt without the trailing '#' (and ASA context suffixes).
+// Hostname is the prompt without the trailing '#' (and ASA context suffixes),
+// or the host part of a PAN-OS "user@host(state)>" prompt.
 func (c *Conn) Hostname() string {
+	if IsPANOSPrompt(c.prompt) {
+		h := strings.TrimSuffix(c.prompt[strings.IndexByte(c.prompt, '@')+1:], ">")
+		if i := strings.IndexByte(h, '('); i > 0 {
+			h = h[:i]
+		}
+		return h
+	}
 	h := strings.TrimSuffix(c.prompt, "#")
 	if i := strings.IndexByte(h, '/'); i > 0 {
 		h = h[:i]
@@ -308,6 +337,9 @@ func (c *Conn) Show(cmd string) (string, error) {
 func (c *Conn) Apply(cr *ChangeRequest) (string, error) {
 	if cr == nil || !cr.Confirmed() {
 		return "", ErrNotConfirmed
+	}
+	if c.panos {
+		return "", ErrChangesUnsupported
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()

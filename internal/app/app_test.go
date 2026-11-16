@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/Camilo-ovalle/lazynet/internal/config"
@@ -136,5 +137,34 @@ func TestDemo(t *testing.T) {
 		if r.Err != nil {
 			t.Fatalf("%s: %v", r.Device.Name, r.Err)
 		}
+	}
+}
+
+func TestDemoPaloAltoBackup(t *testing.T) {
+	a, stop, err := StartDemo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stop()
+	d := a.Inv.Resolve("pa-fw1")
+	s, err := a.Connect(d, &fakePrompter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if s.Platform != device.PaloAlto {
+		t.Fatalf("platform = %q", s.Platform)
+	}
+	res, err := a.Backup(s)
+	if err != nil || !res.Changed {
+		t.Fatalf("backup: %+v %v", res, err)
+	}
+	store, err := a.Backups()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := store.Content(d.Label(), res.Hash)
+	if err != nil || !strings.Contains(cfg, `<config version="11.1.0"`) {
+		t.Fatalf("stored backup: %v\n%.200s", err, cfg)
 	}
 }

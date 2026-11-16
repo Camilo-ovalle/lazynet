@@ -1,14 +1,15 @@
-# Unified Cisco platform used for every lazynet session. Prompt patterns cover
-# IOS, IOS-XE, NX-OS and ASA so a single session can run `show version`, detect
-# the platform, and then apply the right terminal settings. No on-open
-# commands: lazynet checks the privilege level itself and fails fast at '>'.
-platform-type: 'lazynet_cisco'
+# Unified platform used for every lazynet session. Prompt patterns cover IOS,
+# IOS-XE, NX-OS, ASA and PAN-OS, so a single session can detect the platform
+# and then apply the right paging settings. No on-open commands: lazynet checks
+# the prompt itself. A '>' prompt is only accepted for PAN-OS operational mode
+# ("user@host>"); on Cisco it means user EXEC and the login is refused.
+platform-type: 'lazynet_cli'
 default:
   driver-type: 'network'
   privilege-levels:
     exec:
       name: 'exec'
-      pattern: '(?im)^[\w.\-@/:]{1,63}>\s?$'
+      pattern: '(?im)^[\w.\-@/:]{1,63}(?:\([\w\-]{1,24}\))?>\s?$'
       previous-priv:
       deescalate:
       escalate:
@@ -42,3 +43,6 @@ default:
     - '% Invalid command'
     - 'ERROR: %'
     - '% Authorization failed'
+    - 'Invalid syntax.'
+    - 'Unknown command:'
+    - 'Server error :'

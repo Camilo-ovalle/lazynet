@@ -194,10 +194,10 @@ export const guarantees = [
 ];
 
 export const features = [
-  { title: "Automatic platform detection", text: "Point it at an IP; it works out Catalyst (IOS / IOS-XE), Nexus (NX-OS) or ASA." },
+  { title: "Automatic platform detection", text: "Point it at an IP; it works out Catalyst (IOS / IOS-XE), Nexus (NX-OS), ASA or a Palo Alto firewall." },
+  { title: "Palo Alto backups", text: "Device info and versioned PAN-OS configuration backups in native XML, the format the firewall imports." },
   { title: "Demo mode", text: "lazynet --demo starts emulated devices on localhost. Try every feature without a network." },
   { title: "Single static binary", text: "SSH, git and the keyring are built in. No Python, no agents, no runtime dependencies." },
   { title: "Inventory with groups", text: "A YAML inventory with groups, plus ad-hoc IPs. Run info or backup across a whole group in parallel." },
   { title: "Scriptable", text: "Every command has -o json, and shell completion even suggests device names from your inventory." },
-  { title: "Old gear welcome", text: "Legacy SSH algorithms are offered after modern ones, so older IOS images just work." },
 ];

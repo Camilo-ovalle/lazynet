@@ -204,3 +204,18 @@ func TestNormalizeMAC(t *testing.T) {
 		}
 	}
 }
+
+func TestPANOSSystemInfo(t *testing.T) {
+	si := PANOSSystemInfo(dev("paloalto").Exec("show system info"))
+	if si.Hostname != "lab1" || si.Model != "PA-440" || si.Serial != "024101001234" || si.Version != "11.1.4-h7" ||
+		si.MAC != "00:50:56:a1:b2:c3" || si.IP != "10.10.0.2" || si.Uptime != "41 days, 6:12:40" {
+		t.Fatalf("got %+v", si)
+	}
+	if !si.Clock.Equal(fixedNow.UTC().Truncate(time.Second)) {
+		t.Fatalf("clock = %v, want %v", si.Clock, fixedNow.UTC())
+	}
+	// "unknown" values are treated as empty.
+	if PANOSSystemInfo("serial: unknown\nip-address: unknown\n").Serial != "" {
+		t.Fatal("unknown serial should be empty")
+	}
+}

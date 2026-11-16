@@ -146,9 +146,17 @@ type session struct {
 	d     *Device
 	mode  mode
 	iface *Port
+	user  string // SSH login (PAN-OS shows it in the prompt)
 }
 
 func (s *session) prompt() string {
+	if s.d.Platform == "paloalto" {
+		user := s.user
+		if user == "" {
+			user = "admin"
+		}
+		return user + "@" + s.d.Hostname + ">"
+	}
 	switch s.mode {
 	case modeExec:
 		return s.d.Hostname + ">"
@@ -170,6 +178,9 @@ func (s *session) handle(line string) (string, bool) {
 		return "", false
 	}
 	d.commands = append(d.commands, line)
+	if d.Platform == "paloalto" {
+		return s.panos(line)
+	}
 	f := strings.Fields(line)
 	switch s.mode {
 	case modeConfig, modeConfigIf:
@@ -572,4 +583,36 @@ func (d *Device) Exec(cmd string) string {
 	s := &session{d: d, mode: modePriv}
 	out, _ := s.handle(cmd)
 	return out
+}
+
+// panos emulates PAN-OS operational mode: paging control, the show commands
+// lazynet uses (from fixtures, filterable with "| match"), and "Invalid
+// syntax." for anything else, like the real CLI.
+func (s *session) panos(line string) (string, bool) {
+	d := s.d
+	c := strings.Join(strings.Fields(line), " ")
+	switch {
+	case c == "exit" || c == "quit":
+		return "", true
+	case c == "set cli pager off" || c == "set cli pager on":
+		return "", false
+	case c == "show clock":
+		return d.Now().UTC().Format("Mon Jan 2 15:04:05 MST 2006"), false
+	}
+	base, expr, filtered := strings.Cut(c, " | match ")
+	out, ok := d.static[strings.ToLower(base)]
+	if !ok {
+		return "Invalid syntax.", false
+	}
+	out = d.render(out, d.Now())
+	if !filtered {
+		return out, false
+	}
+	var keep []string
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, expr) {
+			keep = append(keep, l)
+		}
+	}
+	return strings.Join(keep, "\n"), false
 }

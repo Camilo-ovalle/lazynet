@@ -160,3 +160,53 @@ func TestCheckHostKeyDoesNotAuthenticate(t *testing.T) {
 		t.Fatalf("unreachable: %v", err)
 	}
 }
+
+func TestPANOSPrompt(t *testing.T) {
+	for p, want := range map[string]bool{
+		"admin@pa-fw1>":         true,
+		"admin@pa-fw1(active)>": true,
+		"ops.user@PA-440-01>":   true,
+		"admin@pa-fw1>  ":       true,
+		"admin@pa-fw1#":         false, // PAN-OS configure mode: never used
+		"core-sw1>":             false, // Cisco user EXEC must stay refused
+		"core-sw1#":             false,
+		"fw/admin>":             false,
+		"admin@pa fw1>":         false,
+	} {
+		if got := IsPANOSPrompt(p); got != want {
+			t.Errorf("IsPANOSPrompt(%q) = %v, want %v", p, got, want)
+		}
+	}
+}
+
+func TestDialPANOS(t *testing.T) {
+	srv, o := startMock(t, "paloalto", false)
+	c := dialTrusted(t, o)
+	if c.Prompt() != "admin@lab-paloalto>" || c.Hostname() != "lab-paloalto" {
+		t.Fatalf("prompt %q hostname %q", c.Prompt(), c.Hostname())
+	}
+	if _, err := c.Show("set cli pager off"); err != nil {
+		t.Fatal(err)
+	}
+	out, err := c.Show("show system info")
+	if err != nil || !strings.Contains(out, "sw-version: 11.1.4-h7") {
+		t.Fatalf("show system info: %v\n%s", err, out)
+	}
+	if _, err := c.Show("show nonsense"); err == nil {
+		t.Fatal("PAN-OS 'Invalid syntax.' must be reported as a failure")
+	}
+	if _, err := c.Show("configure"); !errors.Is(err, ErrNotReadOnly) {
+		t.Fatalf("configure must be blocked by the guard, got %v", err)
+	}
+	// Defense in depth: even a confirmed change is refused on PAN-OS.
+	cr := NewConfigChange("set deviceconfig system hostname x")
+	cr.Confirm(cr.Display())
+	if _, err := c.Apply(cr); !errors.Is(err, ErrChangesUnsupported) {
+		t.Fatalf("Apply on PAN-OS = %v, want ErrChangesUnsupported", err)
+	}
+	for _, cmd := range srv.Device.Commands() {
+		if strings.HasPrefix(cmd, "configure") || strings.HasPrefix(cmd, "set deviceconfig") || cmd == "enable" {
+			t.Fatalf("unexpected command reached the firewall: %q", cmd)
+		}
+	}
+}

@@ -18,6 +18,9 @@ var ErrNotReadOnly = errors.New("command rejected: only read-only 'show' command
 
 var (
 	terminalCmd = regexp.MustCompile(`^terminal (length 0|pager 0|width \d{1,3})$`)
+	// PAN-OS session setting: disables paging for this CLI session only (it is
+	// an operational-mode command and never touches the configuration).
+	panosPagerOff = "set cli pager off"
 	// Pipe targets that write files or otherwise have side effects.
 	pipeSideEffect = regexp.MustCompile(`(?i)\|\s*(redirect|tee|append|save)\b`)
 	// Output redirection used by NX-OS ("show run > bootflash:x").
@@ -25,14 +28,15 @@ var (
 )
 
 // CheckReadOnly returns nil if cmd is safe to run on any device: a single
-// "show ..." command (optionally filtered with | include/exclude/begin/section)
-// or a terminal setting for the current session only.
+// "show ..." command (optionally filtered with | include/exclude/begin/section
+// or PAN-OS | match/except) or a paging setting for the current session only
+// (Cisco "terminal ...", PAN-OS "set cli pager off").
 func CheckReadOnly(cmd string) error {
 	if strings.ContainsAny(cmd, "\r\n\x00") || strings.IndexFunc(cmd, func(r rune) bool { return r < 0x20 && r != '\t' }) >= 0 {
 		return fmt.Errorf("%w: control characters in %q", ErrNotReadOnly, cmd)
 	}
 	c := strings.Join(strings.Fields(cmd), " ")
-	if terminalCmd.MatchString(c) {
+	if terminalCmd.MatchString(c) || c == panosPagerOff {
 		return nil
 	}
 	if !strings.HasPrefix(strings.ToLower(c), "show ") {

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <b>Una TUI y CLI para Cisco Catalyst, Nexus y ASA.</b><br>
+  <b>Una TUI y CLI para Cisco Catalyst, Nexus y ASA, con backups de firewalls Palo Alto.</b><br>
   Consulta equipos, revisa logs, respalda configuraciones y cambia VLANs de acceso con seguridad, desde una sola terminal.
 </p>
 
@@ -85,21 +85,24 @@ lazynet pone esas tareas del día a día detrás de una interfaz rápida, maneja
   - verifica el resultado en el equipo;
   - pregunta aparte antes del `write memory`;
   - audita cada intento.
-- **Detección automática de plataforma:** le das una IP y lazynet averigua si es Catalyst, Nexus o ASA.
+- **Detección automática de plataforma:** le das una IP y lazynet averigua si es Catalyst, Nexus, ASA o un firewall Palo Alto.
+- **También firewalls Palo Alto:** información del equipo y backups versionados de la configuración (XML nativo de PAN-OS, el formato que el firewall importa), por la misma sesión SSH de solo lectura.
 - **Credenciales como `sudo`:** las contraseñas se piden y nunca se escriben en disco. Se recuerdan 5 minutos en el keyring del kernel de Linux.
 - **Sin dependencias:** un único binario estático, con SSH y git integrados.
 - **Modo demo:** `lazynet --demo` levanta equipos emulados en localhost, para probar todo sin red.
 
 ## Plataformas soportadas
 
-| Funcionalidad | Catalyst (IOS / IOS-XE) | Nexus (NX-OS) | ASA |
-|---|:---:|:---:|:---:|
-| Detección de plataforma | ✅ | ✅ | ✅ |
-| Información del equipo | ✅ | ✅ | ✅ |
-| Consulta de interfaces | ✅ | ✅ | ✅ |
-| Logs por rango de tiempo | ✅ | ✅ | ✅ |
-| Backup y diff de configuración | ✅ | ✅ | ✅ |
-| Cambio de VLAN de acceso | ✅ | — | — |
+| Funcionalidad | Catalyst (IOS / IOS-XE) | Nexus (NX-OS) | ASA | Palo Alto (PAN-OS) |
+|---|:---:|:---:|:---:|:---:|
+| Detección de plataforma | ✅ | ✅ | ✅ | ✅ |
+| Información del equipo | ✅ | ✅ | ✅ | ✅ |
+| Consulta de interfaces | ✅ | ✅ | ✅ | — |
+| Logs por rango de tiempo | ✅ | ✅ | ✅ | — |
+| Backup y diff de configuración | ✅ | ✅ | ✅ | ✅ (XML) |
+| Cambio de VLAN de acceso | ✅ | — | — | — |
+
+Probado con la salida de Catalyst C9200L-48P-4X con IOS XE 17.12.04. En Palo Alto, lazynet entra en modo operativo y solo ejecuta comandos `show`, más `set cli pager off`, que desactiva la paginación de su propia sesión.
 
 lazynet funciona en **Linux** (amd64 y arm64). El soporte para Windows y PowerShell está en la [hoja de ruta](#hoja-de-ruta).
 
@@ -373,7 +376,10 @@ devices:
     host: 10.10.0.1
     group: firewalls
     username: fwadmin
-    platform: asa        # opcional: omite la detección automática
+    platform: asa        # opcional: omite la detección automática (catalyst, nexus, asa, paloalto)
+  - name: pa-fw1
+    host: 10.10.0.2
+    group: firewalls
 ```
 
 `lazynet inventory add` agrega un equipo conservando tus comentarios y formato.
@@ -471,6 +477,7 @@ Por ahora, la contribución más valiosa son reportes de bugs que incluyan la sa
 - [ ] Logs desde un servidor syslog
 - [ ] Restaurar backups
 - [ ] Cambios de VLAN en Nexus
+- [ ] Palo Alto: interfaces y logs
 
 ## Agradecimientos
 
@@ -478,7 +485,7 @@ Por ahora, la contribución más valiosa son reportes de bugs que incluyan la sa
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss) y [Bubbles](https://github.com/charmbracelet/bubbles), de Charm.
 - [scrapligo](https://github.com/scrapli/scrapligo), [go-git](https://github.com/go-git/go-git) y [Cobra](https://github.com/spf13/cobra).
 
-lazynet es un proyecto independiente, sin afiliación ni respaldo de Cisco Systems. Cisco, Catalyst y Nexus son marcas registradas de Cisco Systems, Inc.
+lazynet es un proyecto independiente, sin afiliación ni respaldo de Cisco Systems ni de Palo Alto Networks. Cisco, Catalyst y Nexus son marcas registradas de Cisco Systems, Inc. Palo Alto Networks y PAN-OS son marcas registradas de Palo Alto Networks, Inc.
 
 ## Licencia
 

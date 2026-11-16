@@ -19,6 +19,10 @@ func TestCheckReadOnly(t *testing.T) {
 		"terminal pager 0",
 		"terminal width 511",
 		"SHOW VERSION",
+		"set cli pager off",                   // PAN-OS session paging
+		"set  cli  pager  off",                // whitespace is normalised
+		"show system info | match sw-version", // PAN-OS filter
+		"show config running",                 // PAN-OS backup
 	}
 	for _, c := range allowed {
 		if err := CheckReadOnly(c); err != nil {
@@ -41,6 +45,14 @@ func TestCheckReadOnly(t *testing.T) {
 		"debug ip packet",
 		"sh run",
 		"",
+		// PAN-OS: only the paging setting is allowed, never configuration.
+		"set cli pager on",
+		"set cli config-output-format set",
+		"set deviceconfig system hostname x",
+		"configure",
+		"commit",
+		"request restart system",
+		"set cli pager off; commit",
 	}
 	for _, c := range denied {
 		if err := CheckReadOnly(c); !errors.Is(err, ErrNotReadOnly) {

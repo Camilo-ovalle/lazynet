@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/transport"
 )
 
 // Shower runs read-only commands (implemented by *transport.Conn, which
@@ -58,10 +59,25 @@ type Driver interface {
 	RunningConfig() (string, error)
 }
 
-// Detect identifies the platform from `show version`. The output is filtered
-// on the device ("| include Software") so it is short enough not to page
-// before terminal settings are applied.
+// prompter is implemented by sessions that know their login prompt
+// (*transport.Conn).
+type prompter interface{ Prompt() string }
+
+// Detect identifies the platform. A PAN-OS prompt ("user@host>") is confirmed
+// with `show system info`; anything else is classified from `show version`,
+// filtered on the device ("| include Software") so it is short enough not to
+// page before terminal settings are applied.
 func Detect(s Shower) (Platform, error) {
+	if p, ok := s.(prompter); ok && transport.IsPANOSPrompt(p.Prompt()) {
+		out, err := s.Show("show system info")
+		if err != nil {
+			return Unknown, fmt.Errorf("detecting platform: %w", err)
+		}
+		if !strings.Contains(out, "sw-version:") {
+			return Unknown, fmt.Errorf("unrecognised device (PAN-OS prompt, but show system info has no sw-version)")
+		}
+		return PaloAlto, nil
+	}
 	out, err := s.Show("show version | include Software")
 	if err != nil {
 		return Unknown, fmt.Errorf("detecting platform: %w", err)
@@ -85,8 +101,11 @@ func DetectFromVersion(out string) (Platform, error) {
 // Setup applies per-session terminal settings (no paging, wide lines).
 func Setup(p Platform, s Shower) error {
 	cmds := []string{"terminal length 0", "terminal width 511"}
-	if p == ASA {
+	switch p {
+	case ASA:
 		cmds = []string{"terminal pager 0"}
+	case PaloAlto:
+		cmds = []string{"set cli pager off"}
 	}
 	for _, c := range cmds {
 		if _, err := s.Show(c); err != nil {
@@ -105,6 +124,8 @@ func New(p Platform, s Shower) (Driver, error) {
 		return &nexus{s}, nil
 	case ASA:
 		return &asa{s}, nil
+	case PaloAlto:
+		return &paloalto{s}, nil
 	}
 	return nil, fmt.Errorf("no driver for platform %q", p)
 }
@@ -240,3 +261,36 @@ func info(p Platform, v parse.Version, ip string, clk time.Time) Info {
 		Serial: v.Serial, MAC: v.MAC, IP: ip, Uptime: v.Uptime, Clock: clk,
 	}
 }
+
+// --- Palo Alto (PAN-OS) ---
+
+// errPaloAltoScope explains what Palo Alto support covers for now.
+var errPaloAltoScope = fmt.Errorf("%w: Palo Alto support covers device info and configuration backups for now", ErrUnsupported)
+
+type paloalto struct{ s Shower }
+
+func (f *paloalto) Platform() Platform { return PaloAlto }
+
+func (f *paloalto) Info(ip string) (Info, error) {
+	out, err := f.s.Show("show system info")
+	if err != nil {
+		return Info{}, err
+	}
+	si := parse.PANOSSystemInfo(out)
+	if si.IP != "" {
+		ip = si.IP // the management address the firewall reports
+	}
+	return Info{
+		Hostname: si.Hostname, Platform: PaloAlto, OS: "PAN-OS", Version: si.Version,
+		Model: si.Model, Serial: si.Serial, MAC: si.MAC, IP: ip, Uptime: si.Uptime, Clock: si.Clock,
+	}, nil
+}
+
+func (f *paloalto) Interface(string) (InterfaceDetail, error) {
+	return InterfaceDetail{}, errPaloAltoScope
+}
+func (f *paloalto) Logs() (LogResult, error) { return LogResult{}, errPaloAltoScope }
+
+// RunningConfig returns the running configuration as PAN-OS XML, the format
+// the firewall imports for a restore.
+func (f *paloalto) RunningConfig() (string, error) { return f.s.Show("show config running") }

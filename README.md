@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <b>A terminal UI and CLI for Cisco Catalyst, Nexus and ASA.</b><br>
+  <b>A terminal UI and CLI for Cisco Catalyst, Nexus and ASA, with Palo Alto firewall backups.</b><br>
   Inspect devices, read logs, back up configs and change access VLANs safely, from one terminal.
 </p>
 
@@ -62,21 +62,24 @@ lazynet puts those everyday tasks behind a fast keyboard- and mouse-driven inter
 - **Logs by time range.** Filters the device log buffer with `--from` / `--to` or `--last 2h`, plus text and severity filters. It understands IOS, IOS-XE, NX-OS and ASA timestamps, and infers missing years from the device clock.
 - **Versioned config backups.** Stores `running-config` snapshots in a local git repository. A new version is created only when something changed, and lazynet shows unified diffs between versions.
 - **Safe access-VLAN changes** on Catalyst switches. Trunk ports and missing VLANs are refused. You confirm the exact commands, the result is verified on the device, `write memory` is a separate prompt, and every attempt is audited.
-- **Automatic platform detection.** Point it at an IP; lazynet works out whether it is a Catalyst, Nexus or ASA.
+- **Automatic platform detection.** Point it at an IP; lazynet works out whether it is a Catalyst, Nexus, ASA or Palo Alto firewall.
+- **Palo Alto firewalls too.** Device info and versioned configuration backups (native PAN-OS XML, the format the firewall imports) over the same read-only SSH session.
 - **Credentials handled like `sudo`.** Passwords are prompted and never written to disk. They are remembered for 5 minutes in the Linux kernel keyring.
 - **Zero dependencies.** lazynet is a single static binary with SSH and git built in.
 - **Demo mode.** `lazynet --demo` starts emulated devices on localhost, so you can try every feature without a network.
 
 ## Supported platforms
 
-| Feature | Catalyst (IOS / IOS-XE) | Nexus (NX-OS) | ASA |
-|---|:---:|:---:|:---:|
-| Platform detection | ✅ | ✅ | ✅ |
-| Device info | ✅ | ✅ | ✅ |
-| Interface lookup | ✅ | ✅ | ✅ |
-| Logs by time range | ✅ | ✅ | ✅ |
-| Config backup and diff | ✅ | ✅ | ✅ |
-| Access-VLAN change | ✅ | — | — |
+| Feature | Catalyst (IOS / IOS-XE) | Nexus (NX-OS) | ASA | Palo Alto (PAN-OS) |
+|---|:---:|:---:|:---:|:---:|
+| Platform detection | ✅ | ✅ | ✅ | ✅ |
+| Device info | ✅ | ✅ | ✅ | ✅ |
+| Interface lookup | ✅ | ✅ | ✅ | — |
+| Logs by time range | ✅ | ✅ | ✅ | — |
+| Config backup and diff | ✅ | ✅ | ✅ | ✅ (XML) |
+| Access-VLAN change | ✅ | — | — | — |
+
+Tested against Catalyst C9200L-48P-4X on IOS XE 17.12.04 output. On Palo Alto, lazynet logs in to operational mode and only runs `show` commands plus `set cli pager off`, a paging setting for its own CLI session.
 
 lazynet runs on **Linux** (amd64 and arm64). Windows and PowerShell support is on the [roadmap](#roadmap).
 
@@ -347,7 +350,10 @@ devices:
     host: 10.10.0.1
     group: firewalls
     username: fwadmin
-    platform: asa        # optional: skips auto-detection
+    platform: asa        # optional: skips auto-detection (catalyst, nexus, asa, paloalto)
+  - name: pa-fw1
+    host: 10.10.0.2
+    group: firewalls
 ```
 
 `lazynet inventory add` appends a device and keeps your comments and formatting.
@@ -445,6 +451,7 @@ Bug reports with sanitized `show` output from your devices are the most valuable
 - [ ] Logs from a syslog server
 - [ ] Restoring backups
 - [ ] VLAN changes on Nexus
+- [ ] Palo Alto: interfaces and logs
 
 ## Acknowledgments
 
@@ -452,7 +459,7 @@ Bug reports with sanitized `show` output from your devices are the most valuable
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss) and [Bubbles](https://github.com/charmbracelet/bubbles) by Charm.
 - [scrapligo](https://github.com/scrapli/scrapligo), [go-git](https://github.com/go-git/go-git) and [Cobra](https://github.com/spf13/cobra).
 
-lazynet is an independent project. It is not affiliated with or endorsed by Cisco Systems. Cisco, Catalyst and Nexus are trademarks of Cisco Systems, Inc.
+lazynet is an independent project. It is not affiliated with or endorsed by Cisco Systems or Palo Alto Networks. Cisco, Catalyst and Nexus are trademarks of Cisco Systems, Inc. Palo Alto Networks and PAN-OS are trademarks of Palo Alto Networks, Inc.
 
 ## License
 

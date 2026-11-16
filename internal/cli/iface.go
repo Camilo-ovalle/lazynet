@@ -31,7 +31,7 @@ func newIfaceCmd(g *globals) *cobra.Command {
 				return err
 			}
 			defer s.Close()
-			d, err := s.Driver.Interface(port)
+			d, err := s.Interface(port)
 			if err != nil {
 				return err
 			}

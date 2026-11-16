@@ -10,10 +10,21 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
+	"github.com/charmbracelet/lipgloss"
 )
+
+// PlatformBadge renders the registered badge of a platform ("CAT"), or a dim
+// placeholder for an unknown one.
+func PlatformBadge(id platform.ID) string {
+	d, ok := platform.Lookup(id)
+	if !ok {
+		return theme.Badge("", theme.Subtle)
+	}
+	return theme.Badge(d.Badge.Text, lipgloss.AdaptiveColor{Light: d.Badge.Light, Dark: d.Badge.Dark})
+}
 
 // KV renders aligned label/value rows.
 func KV(rows [][2]string) string {
@@ -33,12 +44,12 @@ func KV(rows [][2]string) string {
 }
 
 // Info renders basic device information.
-func Info(label string, i device.Info) string {
+func Info(label string, i platform.Info) string {
 	clk := ""
 	if !i.Clock.IsZero() {
 		clk = i.Clock.Format("2006-01-02 15:04:05") + theme.Dim.Render(" (device local)")
 	}
-	head := theme.Title.Render(label) + "  " + theme.PlatformBadge(string(i.Platform)) + " " + theme.Dim.Render(i.OS+" "+i.Version)
+	head := theme.Title.Render(label) + "  " + PlatformBadge(i.Platform) + " " + theme.Dim.Render(i.OS+" "+i.Version)
 	return head + "\n" + KV([][2]string{
 		{"Hostname", i.Hostname}, {"Model", i.Model}, {"Serial", i.Serial}, {"MAC", i.MAC},
 		{"IP", i.IP}, {"OS version", strings.TrimSpace(i.OS + " " + i.Version)}, {"Uptime", i.Uptime}, {"Clock", clk},
@@ -57,7 +68,7 @@ func Status(s string) string {
 }
 
 // Interface renders one interface.
-func Interface(d device.InterfaceDetail) string {
+func Interface(d platform.InterfaceDetail) string {
 	status := Status(d.Status)
 	if d.Reason != "" {
 		status += theme.Dim.Render(" (" + d.Reason + ")")

@@ -16,6 +16,7 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/app"
 	"github.com/Camilo-ovalle/lazynet/internal/config"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/Camilo-ovalle/lazynet/internal/tui"
 	"github.com/spf13/cobra"
@@ -58,8 +59,8 @@ func Execute() int {
 func newRoot(g *globals) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "lazynet",
-		Short: "A lazy terminal UI and CLI for Cisco Catalyst, Nexus and ASA",
-		Long: `lazynet talks to Cisco devices over SSH.
+		Short: "A lazy terminal UI and CLI for " + platform.Describe(platform.All()),
+		Long: `lazynet talks to network devices over SSH: ` + platform.Describe(platform.All()) + `.
 
 Run it without arguments for the interactive TUI, or use subcommands:
 

@@ -8,8 +8,8 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/render"
 	"os"
 
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -34,7 +34,7 @@ func newInfoCmd(g *globals) *cobra.Command {
 					return nil, err
 				}
 				defer s.Close()
-				return s.Driver.Info(d.Host)
+				return s.Info()
 			})
 			if g.json() {
 				out := make([]map[string]any, len(res))
@@ -53,7 +53,7 @@ func newInfoCmd(g *globals) *cobra.Command {
 				if res[0].Err != nil {
 					return res[0].Err
 				}
-				fmt.Println(render.Info(res[0].Device.Label(), res[0].Value.(device.Info)))
+				fmt.Println(render.Info(res[0].Device.Label(), res[0].Value.(platform.Info)))
 				return nil
 			}
 			return infoTable(res)
@@ -82,8 +82,8 @@ func infoTable(res []resultT) error {
 			t.Row(r.Device.Label(), theme.Bad.Render("error"), theme.Bad.Render(trim(r.Err.Error(), 60)), "", "", "", "")
 			continue
 		}
-		i := r.Value.(device.Info)
-		t.Row(r.Device.Label(), theme.PlatformBadge(string(i.Platform)), i.Model, i.Serial, i.MAC, i.OS+" "+i.Version, i.Uptime)
+		i := r.Value.(platform.Info)
+		t.Row(r.Device.Label(), render.PlatformBadge(i.Platform), i.Model, i.Serial, i.MAC, i.OS+" "+i.Version, i.Uptime)
 	}
 	fmt.Println(t)
 	if failed > 0 {

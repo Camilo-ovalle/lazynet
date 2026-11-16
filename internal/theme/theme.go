@@ -39,20 +39,13 @@ var (
 	Group   = lipgloss.NewStyle().Bold(true).Foreground(Muted)
 )
 
-// PlatformBadge renders a short colored platform tag.
-func PlatformBadge(p string) string {
-	c, txt := Subtle, " — "
-	switch p {
-	case "catalyst":
-		c, txt = lipgloss.AdaptiveColor{Light: "#1F5FAD", Dark: "#5FAFFF"}, "CAT"
-	case "nexus":
-		c, txt = lipgloss.AdaptiveColor{Light: "#6A1B9A", Dark: "#D787FF"}, "NXS"
-	case "asa":
-		c, txt = lipgloss.AdaptiveColor{Light: "#B3261E", Dark: "#FF8787"}, "ASA"
-	case "paloalto":
-		c, txt = lipgloss.AdaptiveColor{Light: "#B4430B", Dark: "#FF9E64"}, "PAN"
+// Badge renders a short bold colored tag (platform badges). An empty text
+// renders a dim placeholder.
+func Badge(text string, c lipgloss.AdaptiveColor) string {
+	if text == "" {
+		c, text = Subtle, " — "
 	}
-	return lipgloss.NewStyle().Foreground(c).Bold(true).Render(txt)
+	return lipgloss.NewStyle().Foreground(c).Bold(true).Render(text)
 }
 
 // Severity styles a syslog severity (0-7) for display.

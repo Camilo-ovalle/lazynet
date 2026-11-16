@@ -56,7 +56,7 @@ Time formats: "2026-11-01 08:00", "2026-11-01 08:00:30", "2026-11-01".`,
 				return err
 			}
 			defer s.Close()
-			lr, err := s.Driver.Logs()
+			lr, err := s.Logs()
 			if err != nil {
 				return err
 			}

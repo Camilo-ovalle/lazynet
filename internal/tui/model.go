@@ -14,9 +14,9 @@ import (
 
 	"github.com/Camilo-ovalle/lazynet/internal/app"
 	"github.com/Camilo-ovalle/lazynet/internal/backup"
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -49,12 +49,12 @@ type row struct {
 
 // devState caches everything loaded for one device.
 type devState struct {
-	info       *device.Info
+	info       *platform.Info
 	infoErr    error
-	iface      *device.InterfaceDetail
+	iface      *platform.InterfaceDetail
 	ifaceErr   error
 	ifacePort  string
-	logs       *device.LogResult
+	logs       *platform.LogResult
 	logsErr    error
 	backups    []backup.Entry
 	backupsErr error
@@ -82,7 +82,7 @@ type model struct {
 	focus         focus
 	tab           tab
 	states        map[string]*devState
-	platforms     map[string]device.Platform
+	platforms     map[string]platform.ID
 	logView       logView
 	showRaw       bool
 
@@ -103,7 +103,7 @@ type pendingVlan struct {
 	user  string
 	port  string
 	vlan  int
-	plan  *device.VlanPlan
+	plan  *platform.VlanPlan
 	shown []string
 }
 
@@ -238,6 +238,11 @@ func (m *model) loadTab(force bool) tea.Cmd {
 			return m.start(d.Label(), tabInfo, loadInfo(m.app, m.env, *d))
 		}
 	case tabLogs:
+		if err := m.unsupported(d, platform.CapLogs); err != nil {
+			st.logs, st.logsErr = nil, err
+			m.refreshContent(false)
+			return nil
+		}
 		if force || (st.logs == nil && st.logsErr == nil) {
 			m.setStatus("reading log buffer of "+d.Label()+"…", false)
 			return m.start(d.Label(), tabLogs, loadLogs(m.app, m.env, *d))
@@ -245,6 +250,11 @@ func (m *model) loadTab(force bool) tea.Cmd {
 	case tabBackups:
 		return listBackups(m.app, *d)
 	case tabIface:
+		if err := m.unsupported(d, platform.CapInterfaces); err != nil {
+			st.iface, st.ifaceErr = nil, err
+			m.refreshContent(false)
+			return nil
+		}
 		if force && st.ifacePort != "" {
 			return m.start(d.Label(), tabIface, loadIface(m.app, m.env, *d, st.ifacePort))
 		}
@@ -257,11 +267,30 @@ func (m *model) selectTab(t tab) tea.Cmd {
 	m.vp.GotoTop()
 	m.refreshContent(true)
 	if m.tab == tabIface {
-		if d := m.current(); d != nil && m.state(d.Label()).ifacePort == "" {
+		if d := m.current(); d != nil && m.state(d.Label()).ifacePort == "" && m.unsupported(d, platform.CapInterfaces) == nil {
 			return m.openIfacePrompt()
 		}
 	}
 	return m.loadTab(false)
+}
+
+// platformOf is the device's platform: pinned in the inventory, or detected
+// on a previous connection (Unknown before the first one).
+func (m model) platformOf(d inventory.Device) platform.ID {
+	if p, err := platform.Parse(d.Platform); err == nil && p != platform.Unknown {
+		return p
+	}
+	return m.platforms[d.Label()]
+}
+
+// unsupported explains why d's platform lacks c, or returns nil when it
+// supports it (or is not known yet: the driver answers after connecting).
+// Features are offered from capabilities, never from platform names.
+func (m model) unsupported(d *inventory.Device, c platform.Capability) error {
+	if p := m.platformOf(*d); !platform.Supports(p, c) {
+		return platform.Unsupported(p, c)
+	}
+	return nil
 }
 
 func errText(err error) string {

@@ -25,7 +25,7 @@ func TestCheckReadOnly(t *testing.T) {
 		"show config running",                 // PAN-OS backup
 	}
 	for _, c := range allowed {
-		if err := CheckReadOnly(c); err != nil {
+		if err := CheckReadOnly(c, testDialect.SessionCommands...); err != nil {
 			t.Errorf("CheckReadOnly(%q) = %v; want allowed", c, err)
 		}
 	}
@@ -41,6 +41,8 @@ func TestCheckReadOnly(t *testing.T) {
 		"show run | append flash:x",
 		"show run > bootflash:x",
 		"terminal monitor",
+		"terminal width 80", // only the exact declared settings
+		"terminal length 24",
 		"clear counters",
 		"debug ip packet",
 		"sh run",
@@ -55,8 +57,14 @@ func TestCheckReadOnly(t *testing.T) {
 		"set cli pager off; commit",
 	}
 	for _, c := range denied {
-		if err := CheckReadOnly(c); !errors.Is(err, ErrNotReadOnly) {
+		if err := CheckReadOnly(c, testDialect.SessionCommands...); !errors.Is(err, ErrNotReadOnly) {
 			t.Errorf("CheckReadOnly(%q) = %v; want ErrNotReadOnly", c, err)
+		}
+	}
+	// Session settings are only allowed when a platform declares them.
+	for _, c := range testDialect.SessionCommands {
+		if err := CheckReadOnly(c); !errors.Is(err, ErrNotReadOnly) {
+			t.Errorf("CheckReadOnly(%q) without session commands = %v; want ErrNotReadOnly", c, err)
 		}
 	}
 }

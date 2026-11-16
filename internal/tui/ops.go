@@ -8,8 +8,8 @@ import (
 
 	"github.com/Camilo-ovalle/lazynet/internal/app"
 	"github.com/Camilo-ovalle/lazynet/internal/backup"
-	"github.com/Camilo-ovalle/lazynet/internal/device"
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
+	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -17,17 +17,17 @@ import (
 type (
 	infoMsg struct {
 		label string
-		info  device.Info
+		info  platform.Info
 		err   error
 	}
 	ifaceMsg struct {
 		label  string
-		detail device.InterfaceDetail
+		detail platform.InterfaceDetail
 		err    error
 	}
 	logsMsg struct {
 		label string
-		res   device.LogResult
+		res   platform.LogResult
 		err   error
 	}
 	backupListMsg struct {
@@ -45,14 +45,15 @@ type (
 		err               error
 	}
 	planMsg struct {
-		dev  inventory.Device
-		user string
-		plan *device.VlanPlan
-		err  error
+		dev      inventory.Device
+		user     string
+		platform platform.ID
+		plan     *platform.VlanPlan
+		err      error
 	}
 	applyMsg struct {
 		dev  inventory.Device
-		plan *device.VlanPlan
+		plan *platform.VlanPlan
 		err  error
 	}
 	saveMsg struct {
@@ -73,9 +74,9 @@ func withSession(a *app.App, e *env, d inventory.Device, fn func(*app.Session) e
 
 func loadInfo(a *app.App, e *env, d inventory.Device) tea.Cmd {
 	return func() tea.Msg {
-		var inf device.Info
+		var inf platform.Info
 		err := withSession(a, e, d, func(s *app.Session) (err error) {
-			inf, err = s.Driver.Info(d.Host)
+			inf, err = s.Info()
 			return
 		})
 		return infoMsg{d.Label(), inf, err}
@@ -84,9 +85,9 @@ func loadInfo(a *app.App, e *env, d inventory.Device) tea.Cmd {
 
 func loadIface(a *app.App, e *env, d inventory.Device, port string) tea.Cmd {
 	return func() tea.Msg {
-		var det device.InterfaceDetail
+		var det platform.InterfaceDetail
 		err := withSession(a, e, d, func(s *app.Session) (err error) {
-			det, err = s.Driver.Interface(port)
+			det, err = s.Interface(port)
 			return
 		})
 		return ifaceMsg{d.Label(), det, err}
@@ -95,9 +96,9 @@ func loadIface(a *app.App, e *env, d inventory.Device, port string) tea.Cmd {
 
 func loadLogs(a *app.App, e *env, d inventory.Device) tea.Cmd {
 	return func() tea.Msg {
-		var r device.LogResult
+		var r platform.LogResult
 		err := withSession(a, e, d, func(s *app.Session) (err error) {
-			r, err = s.Driver.Logs()
+			r, err = s.Logs()
 			return
 		})
 		return logsMsg{d.Label(), r, err}
@@ -145,14 +146,15 @@ func loadDiff(a *app.App, d inventory.Device, hash string) tea.Cmd {
 
 func planVlan(a *app.App, e *env, d inventory.Device, port string, vlan int) tea.Cmd {
 	return func() tea.Msg {
-		var p *device.VlanPlan
+		var p *platform.VlanPlan
 		var user string
+		var id platform.ID
 		err := withSession(a, e, d, func(s *app.Session) (err error) {
-			user = s.User
+			user, id = s.User, s.Platform
 			p, err = a.PlanVlan(s, port, vlan)
 			return
 		})
-		return planMsg{d, user, p, err}
+		return planMsg{d, user, id, p, err}
 	}
 }
 
@@ -163,7 +165,7 @@ var errStateChanged = errors.New("the device state changed since you reviewed th
 // are exactly the ones the user approved.
 func applyVlan(a *app.App, e *env, d inventory.Device, port string, vlan int, shown []string) tea.Cmd {
 	return func() tea.Msg {
-		var plan *device.VlanPlan
+		var plan *platform.VlanPlan
 		err := withSession(a, e, d, func(s *app.Session) error {
 			reviewed, err := a.PlanVlan(s, port, vlan)
 			if err != nil {
@@ -182,7 +184,10 @@ func applyVlan(a *app.App, e *env, d inventory.Device, port string, vlan int, sh
 func saveConfig(a *app.App, e *env, d inventory.Device, shown []string) tea.Cmd {
 	return func() tea.Msg {
 		err := withSession(a, e, d, func(s *app.Session) error {
-			cr := device.SaveRequest(s.Platform)
+			cr, err := a.SaveRequest(s)
+			if err != nil {
+				return err
+			}
 			if !cr.Confirm(shown) {
 				return errStateChanged
 			}

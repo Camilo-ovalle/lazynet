@@ -53,7 +53,7 @@ func ParseInterface(out string) Interface {
 	case asaIfStatus.MatchString(out):
 		m := asaIfStatus.FindStringSubmatch(out)
 		i.Name, i.Description, i.Status, i.Protocol = m[1], m[2], m[3], m[4]
-		i.MAC = NormalizeMAC(find(asaMAC, out))
+		i.MAC = NormalizeMAC(Find(asaMAC, out))
 		if d := asaDuplex.FindStringSubmatch(out); d != nil {
 			i.Duplex, i.Speed = d[1], d[2]
 		}
@@ -65,7 +65,7 @@ func ParseInterface(out string) Interface {
 		i.Name, i.Status, i.Reason = m[1], m[2], m[3]
 		i.Protocol = i.Status
 	}
-	if d := find(ifDesc, out); d != "" {
+	if d := Find(ifDesc, out); d != "" {
 		i.Description = d
 	}
 	if i.MAC == "" {
@@ -76,10 +76,10 @@ func ParseInterface(out string) Interface {
 			i.Duplex, i.Speed = strings.ToLower(d[1]), strings.TrimSpace(d[2])
 		}
 	}
-	i.Mode = find(nxMode, out)
-	i.InputErrors = atoi(find(inErrs, out))
-	i.CRC = atoi(find(crcErrs, out))
-	i.OutputErrors = atoi(find(outErrs, out))
+	i.Mode = Find(nxMode, out)
+	i.InputErrors = atoi(Find(inErrs, out))
+	i.CRC = atoi(Find(crcErrs, out))
+	i.OutputErrors = atoi(Find(outErrs, out))
 	if m := inRate.FindStringSubmatch(out); m != nil {
 		i.InputRate = m[2] + " (" + m[1] + ")"
 	}
@@ -119,8 +119,8 @@ var (
 // false when the output does not look like switchport output (e.g. a routed
 // port or an unknown interface).
 func ParseSwitchport(out string) (sp Switchport, ok bool) {
-	sp.AdminMode = find(spAdmin, out)
-	sp.OperMode = find(spOper, out)
+	sp.AdminMode = Find(spAdmin, out)
+	sp.OperMode = Find(spOper, out)
 	if m := spAccess.FindStringSubmatch(out); m != nil {
 		sp.AccessVlan, sp.VlanName = atoi(m[1]), m[2]
 	}

@@ -135,7 +135,7 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 - The landing page (`site/`) and the APT repository share GitHub Pages. `pages.yml` builds the site, records the VHS demos, merges the APT files from `gh-pages` (storage only) and checks that `InRelease` still verifies before deploying. Pages source must be *GitHub Actions*, and the `github-pages` environment must allow deployments from `main`.
 - Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
 - The repository is public.
-- No tests on real devices yet. The Catalyst model and OS version are still unknown; the maintainer will share them.
+- Target Catalyst in production: **C9200L-48P-4X on IOS XE 17.12.04** (ARM64, CAT9K_LITE_IOSXE; ports Gi1/0/1-48 and uplinks Te1/1/1-4). A synthetic `show version` fixture covers it (`internal/parse/testdata/`); replace it with a sanitized real capture when available. No tests on real devices yet.
 - Lab plan: CML-Free on VMware Workstation (Windows host, WSL2 dev environment), with an IOL-L2 (IOS XE 17.18) switch. Its ports are named `Ethernet0/x`, so use `-p e0/1`.
   - VMware NAT network (VMnet8): `192.168.172.0/24`, gateway `.2`.
   - CML server: `.10`. Switch `lab-sw1`: `.50`.

@@ -440,7 +440,7 @@ Al iniciar, la TUI le pregunta a la terminal su color de fondo. Algunas terminal
 ## Desarrollo
 
 ```sh
-make test     # tests unitarios y de integración contra un servidor SSH que emula Cisco
+make test     # tests unitarios y de integración contra equipos SSH emulados
 make build    # binario estático en ./lazynet
 make demo     # compila y abre la TUI en modo demo
 go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo falso independiente
@@ -455,10 +455,12 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo
 | `internal/cli` | Subcomandos (Cobra) |
 | `internal/tui` | Interfaz Bubble Tea |
 | `internal/app` | Flujo de conexión, credenciales, backups y orquestación del cambio de VLAN |
-| `internal/device` | Drivers por plataforma, detección, nombres de interfaz, planificación del cambio de VLAN |
-| `internal/transport` | Sesiones SSH, guardia de solo lectura, cambios confirmados, llaves de host |
-| `internal/parse` | Parsers de salidas `show` y marcas de tiempo de logs |
-| `internal/mockssh` | Servidor SSH que emula el CLI de Cisco (tests y modo demo) |
+| `internal/platform` | Contrato y registro de plataformas: drivers, capacidades opcionales, badges |
+| `internal/platforms/…` | Un paquete por familia de equipos (`cisco/catalyst`, `cisco/nexus`, `cisco/asa`, `paloalto`): driver, parsers y tests |
+| `internal/detect` | Identifica la plataforma de una sesión nueva con las sondas que declara cada plataforma |
+| `internal/transport` | Sesiones SSH sin lógica de fabricante, guardia de solo lectura, cambios confirmados, llaves de host |
+| `internal/parse` | Parsers compartidos por varias plataformas (interfaces, logs, relojes) |
+| `internal/mockssh` | Servidor SSH que emula el CLI de cada plataforma (tests y modo demo) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Backups en git, log de auditoría, caché de credenciales |
 | `assets/` | Logo, íconos e imágenes del README ([generador](assets/assets-generator)) |
 | `site/` | Página de presentación ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), hecha con Astro |

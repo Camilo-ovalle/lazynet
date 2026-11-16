@@ -14,17 +14,6 @@ import Features from "../components/Features.astro";
 import Cta from "../components/Cta.astro";
 import Footer from "../components/Footer.astro";
 
-// Latest release tag, read at build time. Falls back when offline.
-let version = "v0.1.0";
-try {
-  const res = await fetch("https://api.github.com/repos/Camilo-ovalle/lazynet/releases/latest", {
-    headers: { Accept: "application/vnd.github+json" },
-    signal: AbortSignal.timeout(5000),
-  });
-  if (res.ok) version = (await res.json()).tag_name ?? version;
-} catch {
-  // keep the fallback
-}
 ---
 <Base
   title="lazynet — a lazy terminal UI for Cisco Catalyst, Nexus and ASA"
@@ -32,7 +21,7 @@ try {
 >
   <Header />
   <main id="main">
-    <Hero version={version} />
+    <Hero />
     <Platforms />
     <Personas />
     <Commands />

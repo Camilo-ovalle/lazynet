@@ -87,6 +87,12 @@ Go to *Settings → Pages → Build and deployment → Source* and select
 repository, but GitHub no longer serves it directly; pages.yml deploys it
 together with the landing page.
 
+Then go to *Settings → Environments → `github-pages` → Deployment branches and
+tags* and add a rule for the `main` branch. If the environment was created
+while Pages deployed from `gh-pages`, it only allows that branch. A deploy
+from `main` then fails with *Branch "main" is not allowed to deploy to
+github-pages due to environment protection rules*.
+
 ## Cutting a release
 
 1. Make sure the CI is green on `main`. The `packaging` job has already built

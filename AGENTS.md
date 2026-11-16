@@ -117,7 +117,13 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
 ## Status and open items (as of 2026-11-15)
 
-- The MVP is complete. No release has been tagged yet. The release process and the APT repository are documented in `docs/releasing.md`. The CI `packaging` job tests them end to end on every PR: a GoReleaser snapshot, a signed APT repository, `apt install`, and `install.sh`. The real release still needs the `APT_GPG_PRIVATE_KEY` and `APT_GPG_PASSPHRASE` secrets, and GitHub Pages enabled on `gh-pages` after the first run.
+- **v0.1.0 is released** (2026-11-16). Every install method was verified against it:
+  - the APT repository on GitHub Pages (`https://camilo-ovalle.github.io/lazynet`, suite `stable`, component `main`);
+  - `install.sh`, `go install`, and the .deb, .rpm and tarball downloads.
+
+  The repository signing key fingerprint is `7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6`; the README publishes it.
+  Releases: tag `vX.Y.Z` and push it. If the APT publication fails, rerun it with *Actions → release → Run workflow* and the tag. See `docs/releasing.md`.
+- The GitHub Pages root has no page yet. A landing page (Astro) is planned, and it must not break the APT repository files on `gh-pages`.
 - Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
 - The repository is public.
 - No tests on real devices yet. The Catalyst model and OS version are still unknown; the maintainer will share them.

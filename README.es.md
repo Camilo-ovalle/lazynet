@@ -108,22 +108,18 @@ lazynet funciona en **Linux** (amd64 y arm64). El soporte para Windows y PowerSh
 
 ## Instalación
 
-> [!IMPORTANT]
-> Todavía no se ha publicado el primer release. Mientras tanto, usa [Compilar desde el código](#compilar-desde-el-código). Los métodos de abajo funcionarán en cuanto se publique `v0.1.0`.
+lazynet es un único binario estático, sin dependencias. Hay releases para **Linux amd64 y arm64**.
 
-<details open>
-<summary><b>Script de instalación</b> (cualquier distribución Linux)</summary>
+| Método | Ideal para | Cómo se actualiza |
+|---|---|---|
+| [Repositorio APT](#apt-debian-ubuntu) (recomendado) | Debian, Ubuntu y derivados | `sudo apt upgrade` |
+| [Script de instalación](#script-de-instalación) | Cualquier distribución Linux | Volviendo a ejecutar el script |
+| [Paquete .deb / .rpm](#paquetes-deb-y-rpm) | Instalaciones puntuales, Fedora, RHEL | Instalando el paquete nuevo |
+| [Tarball](#tarball) | Instalación manual o sin internet | Reemplazando el binario |
+| [go install](#go-install) | Desarrolladores Go | Repitiendo con `@latest` |
+| [Desde el código](#compilar-desde-el-código) | Quien contribuye | `git pull && make build` |
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
-```
-
-El script descarga el último release para tu arquitectura, verifica su checksum SHA-256 y lo instala en `/usr/local/bin` (o en `~/.local/bin` si no hay sudo). Con `LAZYNET_VERSION=v0.1.0` fijas una versión, y con `LAZYNET_INSTALL_DIR=...` eliges el directorio.
-
-</details>
-
-<details>
-<summary><b>Repositorio APT</b> (Debian, Ubuntu)</summary>
+### APT (Debian, Ubuntu)
 
 ```sh
 curl -fsSL https://camilo-ovalle.github.io/lazynet/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
@@ -131,30 +127,92 @@ echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.gith
 sudo apt update && sudo apt install lazynet
 ```
 
-</details>
+Estos comandos hacen tres cosas:
+1. Guardan la llave de firma del repositorio.
+2. Agregan el repositorio. `signed-by` hace que esa llave solo valga para este repositorio.
+3. Instalan lazynet.
 
-<details>
-<summary><b>.deb / .rpm / tarball</b></summary>
+A partir de ahí, apt verifica cada actualización con esa llave. El paquete también instala el autocompletado para bash, zsh y fish.
 
-Descarga un paquete desde la [página de releases](https://github.com/Camilo-ovalle/lazynet/releases) e instálalo con:
-
-```sh
-sudo apt install ./lazynet_*.deb   # Debian, Ubuntu
-sudo dnf install ./lazynet-*.rpm   # Fedora, RHEL
-```
-
-Los paquetes también instalan el autocompletado para bash, zsh y fish.
-
-</details>
-
-<details>
-<summary><b>Go</b></summary>
+Puedes comprobar que la llave descargada es la correcta:
 
 ```sh
-go install github.com/Camilo-ovalle/lazynet/cmd/lazynet@latest
+gpg --show-keys /usr/share/keyrings/lazynet.gpg
+# huella: 7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6
 ```
 
-</details>
+Para actualizar o desinstalar:
+
+```sh
+sudo apt update && sudo apt upgrade lazynet
+sudo apt remove lazynet
+sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg   # quita también el repositorio
+```
+
+### Script de instalación
+
+Funciona en cualquier distribución Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+El [script](scripts/install.sh):
+- detecta la arquitectura de tu CPU y descarga el último release;
+- verifica su checksum SHA-256;
+- instala el binario en `/usr/local/bin` (con `sudo` si hace falta) o en `~/.local/bin`.
+
+| Variable | Efecto |
+|---|---|
+| `LAZYNET_VERSION=0.1.0` | Instala una versión específica en lugar de la última |
+| `LAZYNET_INSTALL_DIR=$HOME/bin` | Instala en otro directorio |
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | LAZYNET_VERSION=0.1.0 sh
+```
+
+Para actualizar, vuelve a ejecutar el script. Para desinstalar, borra el binario: `sudo rm "$(command -v lazynet)"`.
+
+### Paquetes .deb y .rpm
+
+Sirven para instalar una versión específica sin agregar un repositorio. El número de versión está en la [página de releases](https://github.com/Camilo-ovalle/lazynet/releases).
+
+```sh
+VERSION=0.1.0
+ARCH=amd64        # o arm64
+BASE=https://github.com/Camilo-ovalle/lazynet/releases/download/v$VERSION
+```
+
+```sh
+# Debian, Ubuntu
+curl -fLO "$BASE/lazynet_${VERSION}_linux_${ARCH}.deb"
+sudo apt install "./lazynet_${VERSION}_linux_${ARCH}.deb"
+
+# Fedora, RHEL, Rocky, Alma
+sudo dnf install "$BASE/lazynet_${VERSION}_linux_${ARCH}.rpm"
+```
+
+Los paquetes instalan el binario en `/usr/bin`, junto con el autocompletado y los archivos de licencia. No agregan un repositorio, así que las actualizaciones son manuales.
+
+### Tarball
+
+```sh
+curl -fLO "$BASE/lazynet_${VERSION}_linux_${ARCH}.tar.gz"
+curl -fLO "$BASE/checksums.txt"
+sha256sum --check --ignore-missing checksums.txt
+tar -xzf "lazynet_${VERSION}_linux_${ARCH}.tar.gz"
+sudo install -m 0755 lazynet /usr/local/bin/lazynet
+```
+
+El archivo también incluye `LICENSE`, `NOTICE`, los README y el autocompletado (`completions/`).
+
+### go install
+
+Requiere Go 1.26 o superior. Instala en `$(go env GOPATH)/bin`:
+
+```sh
+go install github.com/Camilo-ovalle/lazynet/cmd/lazynet@latest    # o @v0.1.0
+```
 
 ### Compilar desde el código
 
@@ -164,6 +222,23 @@ Requiere Go 1.26 o superior.
 git clone https://github.com/Camilo-ovalle/lazynet.git
 cd lazynet
 make build        # genera ./lazynet
+```
+
+### Autocompletado
+
+Los paquetes `.deb` y `.rpm` lo configuran solos. Con cualquier otro método, genéralo una vez. El autocompletado también sugiere los nombres de los equipos de tu inventario.
+
+```sh
+lazynet completion bash | sudo tee /usr/share/bash-completion/completions/lazynet >/dev/null
+lazynet completion zsh  > "${fpath[1]}/_lazynet"
+lazynet completion fish > ~/.config/fish/completions/lazynet.fish
+```
+
+### Verificar la instalación
+
+```sh
+lazynet version
+lazynet --demo     # pruébalo de inmediato con equipos emulados
 ```
 
 ## Primeros pasos

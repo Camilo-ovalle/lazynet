@@ -85,25 +85,18 @@ lazynet runs on **Linux** (amd64 and arm64). Windows and PowerShell support is o
 
 ## Installation
 
-> [!IMPORTANT]
-> The first release has not been published yet. Until it is, use [Build from source](#build-from-source). The methods below will work as soon as `v0.1.0` is tagged.
+lazynet is a single static binary with no runtime dependencies. Releases are published for **Linux amd64 and arm64**.
 
-<details open>
-<summary><b>Install script</b> (any Linux distribution)</summary>
+| Method | Best for | How you update |
+|---|---|---|
+| [APT repository](#apt-debian-ubuntu) (recommended) | Debian, Ubuntu and derivatives | `sudo apt upgrade` |
+| [Install script](#install-script) | Any Linux distribution | Run the script again |
+| [.deb / .rpm package](#deb-and-rpm-packages) | One-off installs, Fedora, RHEL | Install the newer package |
+| [Tarball](#tarball) | Manual or offline installs | Replace the binary |
+| [go install](#go-install) | Go developers | Run it again with `@latest` |
+| [From source](#build-from-source) | Contributors | `git pull && make build` |
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
-```
-
-The script downloads the latest release for your architecture, verifies its SHA-256 checksum and installs it into `/usr/local/bin` (or `~/.local/bin` without sudo). You can set these variables:
-
-- `LAZYNET_VERSION=v0.1.0` to pin a version;
-- `LAZYNET_INSTALL_DIR=...` to choose the install directory.
-
-</details>
-
-<details>
-<summary><b>APT repository</b> (Debian, Ubuntu)</summary>
+### APT (Debian, Ubuntu)
 
 ```sh
 curl -fsSL https://camilo-ovalle.github.io/lazynet/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
@@ -111,30 +104,92 @@ echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.gith
 sudo apt update && sudo apt install lazynet
 ```
 
-</details>
+These commands do three things:
+1. Save the repository's signing key.
+2. Add the repository. `signed-by` makes that key valid only for this repository.
+3. Install lazynet.
 
-<details>
-<summary><b>.deb / .rpm / tarball</b></summary>
+From then on, apt verifies every update against that key. The packages also install shell completions for bash, zsh and fish.
 
-Download a package from the [releases page](https://github.com/Camilo-ovalle/lazynet/releases), then install it:
-
-```sh
-sudo apt install ./lazynet_*.deb   # Debian, Ubuntu
-sudo dnf install ./lazynet-*.rpm   # Fedora, RHEL
-```
-
-The packages also install shell completions for bash, zsh and fish.
-
-</details>
-
-<details>
-<summary><b>Go</b></summary>
+You can check that the key you downloaded is the right one:
 
 ```sh
-go install github.com/Camilo-ovalle/lazynet/cmd/lazynet@latest
+gpg --show-keys /usr/share/keyrings/lazynet.gpg
+# fingerprint: 7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6
 ```
 
-</details>
+Upgrade, or uninstall:
+
+```sh
+sudo apt update && sudo apt upgrade lazynet
+sudo apt remove lazynet
+sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg   # also remove the repository
+```
+
+### Install script
+
+Works on any Linux distribution:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+The [script](scripts/install.sh):
+- detects your CPU architecture and downloads the latest release;
+- verifies its SHA-256 checksum;
+- installs the binary into `/usr/local/bin` (using `sudo` if needed) or into `~/.local/bin`.
+
+| Variable | Effect |
+|---|---|
+| `LAZYNET_VERSION=0.1.0` | Install a specific version instead of the latest |
+| `LAZYNET_INSTALL_DIR=$HOME/bin` | Install into another directory |
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | LAZYNET_VERSION=0.1.0 sh
+```
+
+To upgrade, run the script again. To uninstall, delete the binary: `sudo rm "$(command -v lazynet)"`.
+
+### .deb and .rpm packages
+
+Use these to install a specific version without adding a repository. Find the version number on the [releases page](https://github.com/Camilo-ovalle/lazynet/releases).
+
+```sh
+VERSION=0.1.0
+ARCH=amd64        # or arm64
+BASE=https://github.com/Camilo-ovalle/lazynet/releases/download/v$VERSION
+```
+
+```sh
+# Debian, Ubuntu
+curl -fLO "$BASE/lazynet_${VERSION}_linux_${ARCH}.deb"
+sudo apt install "./lazynet_${VERSION}_linux_${ARCH}.deb"
+
+# Fedora, RHEL, Rocky, Alma
+sudo dnf install "$BASE/lazynet_${VERSION}_linux_${ARCH}.rpm"
+```
+
+The packages install the binary into `/usr/bin`, along with shell completions and the license files. They don't add a repository, so updates are manual.
+
+### Tarball
+
+```sh
+curl -fLO "$BASE/lazynet_${VERSION}_linux_${ARCH}.tar.gz"
+curl -fLO "$BASE/checksums.txt"
+sha256sum --check --ignore-missing checksums.txt
+tar -xzf "lazynet_${VERSION}_linux_${ARCH}.tar.gz"
+sudo install -m 0755 lazynet /usr/local/bin/lazynet
+```
+
+The archive also contains `LICENSE`, `NOTICE`, the READMEs and the shell completions (`completions/`).
+
+### go install
+
+Requires Go 1.26 or newer. This installs into `$(go env GOPATH)/bin`:
+
+```sh
+go install github.com/Camilo-ovalle/lazynet/cmd/lazynet@latest    # or @v0.1.0
+```
 
 ### Build from source
 
@@ -144,6 +199,23 @@ Requires Go 1.26 or newer.
 git clone https://github.com/Camilo-ovalle/lazynet.git
 cd lazynet
 make build        # produces ./lazynet
+```
+
+### Shell completion
+
+The `.deb` and `.rpm` packages set this up for you. With any other method, generate it once. Completion also suggests device names from your inventory.
+
+```sh
+lazynet completion bash | sudo tee /usr/share/bash-completion/completions/lazynet >/dev/null
+lazynet completion zsh  > "${fpath[1]}/_lazynet"
+lazynet completion fish > ~/.config/fish/completions/lazynet.fish
+```
+
+### Check the installation
+
+```sh
+lazynet version
+lazynet --demo     # try it right away with emulated devices
 ```
 
 ## Quick start

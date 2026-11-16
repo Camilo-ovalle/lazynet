@@ -1,0 +1,167 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Terminal from "./Terminal.astro";
+import CopyButton from "./CopyButton.astro";
+import { commands } from "../data/content";
+---
+<section class="section section--alt" id="cli">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Command line</span>
+      <h2>Every task is one command away</h2>
+      <p>
+        Prefer scripts to screens? Every feature of the TUI is also a subcommand, with{" "}
+        <code>-o json</code> for automation. These are real outputs from <code>lazynet --demo</code>.
+      </p>
+    </div>
+
+    <div class="layout" data-tabs>
+      <div class="tablist" role="tablist" aria-label="Commands" aria-orientation="vertical">
+        {commands.map((c, i) => (
+          <button
+            role="tab"
+            id={`cmd-tab-${c.id}`}
+            aria-controls={`cmd-panel-${c.id}`}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? 0 : -1}
+            type="button"
+          >
+            <code class="tab-cmd">{c.label}</code>
+            <span class="tab-title">{c.title}</span>
+          </button>
+        ))}
+      </div>
+
+      <div class="panels">
+        {commands.map((c, i) => (
+          <div role="tabpanel" id={`cmd-panel-${c.id}`} aria-labelledby={`cmd-tab-${c.id}`} hidden={i !== 0}>
+            <p class="desc">{c.description}</p>
+            <Terminal title={`~ ${c.command}`}>
+              <div class="cmdline">
+                <code id={`cmd-${c.id}`}><span class="prompt">$</span>{c.command}</code>
+                <CopyButton target={`cmd-${c.id}-text`} />
+                <span id={`cmd-${c.id}-text`} hidden>{c.command}</span>
+              </div>
+              <pre class="out" tabindex="0" aria-label={`Output of ${c.command}`}>{c.output}</pre>
+            </Terminal>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .section-head code {
+    font-size: 0.9em;
+    color: var(--amber);
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+  }
+  .tablist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: sticky;
+    top: 96px;
+  }
+  [role="tab"] {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    padding: 14px 16px;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  [role="tab"]:hover {
+    background: rgb(255 255 255 / 0.03);
+    color: var(--text-2);
+  }
+  [role="tab"][aria-selected="true"] {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: inset 3px 0 0 var(--amber);
+  }
+  .tab-cmd {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--mint);
+  }
+  .tab-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .desc {
+    margin-bottom: 18px;
+    color: var(--text-2);
+    font-size: 17px;
+  }
+  .cmdline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmdline code {
+    flex: 1;
+    min-width: 0;
+    font-size: 14.5px;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .prompt {
+    color: var(--mint);
+    margin-right: 10px;
+    user-select: none;
+  }
+  .out {
+    margin: 0;
+    padding: 20px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text-2);
+    overflow-x: auto;
+    min-height: 260px;
+  }
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    .tablist {
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+    [role="tab"] {
+      width: auto;
+      flex: none;
+      padding: 10px 14px;
+    }
+    .tab-title {
+      display: none;
+    }
+    .out {
+      min-height: 0;
+      font-size: 12.5px;
+    }
+  }
+</style>

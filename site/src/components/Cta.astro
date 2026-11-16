@@ -1,0 +1,74 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Icon from "./Icon.astro";
+import { repo } from "../data/content";
+---
+<section class="section cta">
+  <div class="container">
+    <div class="panel">
+      <div class="glow" aria-hidden="true"></div>
+      <h2>Try it in ten seconds</h2>
+      <p>Demo mode starts emulated Catalyst, Nexus and ASA devices on your machine. Nothing touches your network.</p>
+      <code class="cmd"><span>$</span> lazynet --demo</code>
+      <div class="ctas">
+        <a class="btn btn--primary" href="#install"><Icon name="download" size={18} /> Install lazynet</a>
+        <a class="btn btn--ghost" href={repo}><Icon name="github" size={18} /> Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .panel {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: clamp(48px, 7vw, 88px) var(--gutter);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+  }
+  .glow {
+    position: absolute;
+    inset: auto 0 -60% 0;
+    height: 120%;
+    background: radial-gradient(closest-side, var(--mint-glow), transparent 75%);
+    pointer-events: none;
+  }
+  h2 {
+    position: relative;
+    font-size: clamp(32px, 4.6vw, 52px);
+    font-weight: 850;
+  }
+  p {
+    position: relative;
+    max-width: 560px;
+    margin: 16px auto 0;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .cmd {
+    position: relative;
+    display: inline-block;
+    margin-top: 32px;
+    padding: 14px 22px;
+    font-size: 18px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+  }
+  .cmd span {
+    color: var(--mint);
+    margin-right: 8px;
+  }
+  .ctas {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+</style>

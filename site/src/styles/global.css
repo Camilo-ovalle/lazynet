@@ -1,0 +1,231 @@
+/* Copyright 2026 Camilo Enrique Ovalle Ceron
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Design tokens come from the brand palette (assets/assets-generator/build_logo.py)
+ * and the TUI colours (internal/theme).
+ */
+:root {
+  --bg: #0b1017;
+  --bg-2: #0f151d;
+  --surface: #121821;
+  --surface-2: #1a222d;
+  --surface-3: #1e2834;
+  --border: #2a3542;
+  --border-strong: #3a4554;
+
+  --text: #f3f5f2;
+  --text-2: #c9d1da;
+  --muted: #8a97a8;
+
+  --mint: #3fe0a0;
+  --mint-dim: #0f9f6a;
+  --mint-glow: rgb(63 224 160 / 0.16);
+  --amber: #ffb547;
+  --amber-glow: rgb(255 181 71 / 0.14);
+
+  --cat: #5fafff;
+  --nxs: #d787ff;
+  --asa: #ff8787;
+  --danger: #ff6b6b;
+
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --radius: 12px;
+  --radius-lg: 18px;
+  --container: 1200px;
+  --gutter: clamp(16px, 4vw, 32px);
+  --section-y: clamp(64px, 10vw, 128px);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-2);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--mint);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgb(63 224 160 / 0.3);
+  color: var(--text);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section-y);
+  position: relative;
+}
+
+.section--alt {
+  background: var(--bg-2);
+  border-block: 1px solid rgb(42 53 66 / 0.6);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mint);
+}
+
+.section-head {
+  max-width: 760px;
+  margin-bottom: clamp(36px, 5vw, 56px);
+}
+.section-head--center {
+  margin-inline: auto;
+  text-align: center;
+}
+.section-head h2 {
+  font-size: clamp(30px, 4.2vw, 46px);
+  font-weight: 800;
+  margin-top: 14px;
+}
+.section-head p {
+  margin-top: 16px;
+  font-size: clamp(17px, 1.6vw, 19px);
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 10px;
+  font-weight: 650;
+  font-size: 16px;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.btn:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.btn--primary {
+  background: var(--mint);
+  color: #06120c;
+}
+.btn--primary:hover {
+  background: #5ff0b5;
+}
+.btn--ghost {
+  background: rgb(255 255 255 / 0.03);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn--ghost:hover {
+  border-color: var(--muted);
+  background: rgb(255 255 255 / 0.06);
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.badge--cat { color: var(--cat); }
+.badge--nxs { color: var(--nxs); }
+.badge--asa { color: var(--asa); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

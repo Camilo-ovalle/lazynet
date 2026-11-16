@@ -1,0 +1,135 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Icon from "./Icon.astro";
+import { repo } from "../data/content";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const links = [
+  { href: "#features", label: "Features" },
+  { href: "#install", label: "Install" },
+  { href: "#safety", label: "Safety" },
+  { href: `${repo}#readme`, label: "Docs" },
+];
+---
+<header class="site-header">
+  <div class="container bar">
+    <a class="logo" href={base} aria-label="lazynet home">
+      <img src={`${base}brand/lazynet-lockup-dark-transparent.svg`} alt="lazynet" width="132" height="40" />
+    </a>
+    <nav class="nav" aria-label="Main">
+      {links.map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+    <div class="actions">
+      <a class="btn btn--ghost gh" href={repo}>
+        <Icon name="github" size={18} /> <span>GitHub</span>
+      </a>
+      <details class="mobile">
+        <summary aria-label="Open menu"><Icon name="menu" size={22} /></summary>
+        <nav class="mobile-nav" aria-label="Mobile">
+          {links.map((l) => <a href={l.href}>{l.label}</a>)}
+          <a href={repo}><Icon name="github" size={16} /> GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgb(11 16 23 / 0.78);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid rgb(42 53 66 / 0.7);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 68px;
+  }
+  .logo img {
+    height: 34px;
+    width: auto;
+  }
+  .nav {
+    display: flex;
+    gap: 28px;
+    margin-right: auto;
+  }
+  .nav a {
+    color: var(--text-2);
+    font-weight: 550;
+    font-size: 15px;
+  }
+  .nav a:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+  .gh {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 15px;
+  }
+  .mobile {
+    display: none;
+    position: relative;
+  }
+  .mobile summary {
+    list-style: none;
+    cursor: pointer;
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+  }
+  .mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .mobile-nav {
+    position: absolute;
+    right: 0;
+    top: 54px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.5);
+  }
+  .mobile-nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: var(--text);
+    font-weight: 550;
+  }
+  .mobile-nav a:hover {
+    background: var(--surface-2);
+    text-decoration: none;
+  }
+  @media (max-width: 760px) {
+    .nav,
+    .gh {
+      display: none;
+    }
+    .mobile {
+      display: block;
+    }
+  }
+</style>

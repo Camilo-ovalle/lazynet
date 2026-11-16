@@ -1,0 +1,168 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import CopyButton from "./CopyButton.astro";
+import { installs, repo } from "../data/content";
+---
+<section class="section" id="install">
+  <div class="container layout">
+    <div class="intro">
+      <span class="eyebrow">Install</span>
+      <h2>One static binary. Pick your way in.</h2>
+      <p>
+        No Python, no agents, no runtime dependencies. Releases are published for Linux amd64 and
+        arm64, and every download is checksummed or signed.
+      </p>
+      <dl class="facts">
+        <div><dt>APT key fingerprint</dt><dd><code>7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6</code></dd></div>
+      </dl>
+      <p class="links">
+        <a href={`${repo}#installation`}>All install methods</a>{" · "}
+        <a href={`${repo}/releases`}>Releases</a>
+      </p>
+    </div>
+
+    <div class="box" data-tabs>
+      <div class="tablist" role="tablist" aria-label="Install method">
+        {installs.map((m, i) => (
+          <button
+            role="tab"
+            type="button"
+            id={`inst-tab-${m.id}`}
+            aria-controls={`inst-panel-${m.id}`}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? 0 : -1}
+          >{m.label}</button>
+        ))}
+      </div>
+      {installs.map((m, i) => (
+        <div role="tabpanel" id={`inst-panel-${m.id}`} aria-labelledby={`inst-tab-${m.id}`} hidden={i !== 0}>
+          <p class="note">{m.note}</p>
+          <div class="code">
+            <pre id={`inst-code-${m.id}`} tabindex="0">{m.code}</pre>
+            <CopyButton target={`inst-code-${m.id}`} />
+          </div>
+        </div>
+      ))}
+      <p class="then">Then run <code>lazynet --demo</code> to try it, or <code>lazynet inventory init</code> to add your devices.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(36px, 5vw, 64px);
+    align-items: start;
+  }
+  h2 {
+    margin-top: 14px;
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 800;
+  }
+  .intro > p {
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 17px;
+  }
+  .facts {
+    margin: 28px 0 0;
+  }
+  .facts dt {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .facts dd {
+    margin: 6px 0 0;
+  }
+  .facts code {
+    font-size: 13px;
+    color: var(--text-2);
+    word-break: break-word;
+  }
+  .links {
+    margin-top: 24px !important;
+    font-weight: 600;
+  }
+  .box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 8px;
+    min-width: 0;
+  }
+  .tablist {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  [role="tab"] {
+    flex: 1;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 650;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  [role="tab"]:hover {
+    color: var(--text);
+  }
+  [role="tab"][aria-selected="true"] {
+    background: var(--surface-3);
+    color: var(--text);
+    box-shadow: inset 0 -2px 0 var(--mint);
+  }
+  [role="tabpanel"] {
+    padding: 20px 16px 8px;
+  }
+  .note {
+    color: var(--text-2);
+    font-size: 15px;
+  }
+  .code {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .code pre {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .then {
+    padding: 8px 16px 16px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .then code {
+    color: var(--amber);
+    font-size: 0.92em;
+  }
+  @media (max-width: 980px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

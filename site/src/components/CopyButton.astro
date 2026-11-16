@@ -1,0 +1,46 @@
+---
+// Copyright 2026 Camilo Enrique Ovalle Ceron
+// SPDX-License-Identifier: Apache-2.0
+import Icon from "./Icon.astro";
+interface Props {
+  target: string;
+}
+const { target } = Astro.props;
+---
+<button class="copy" type="button" data-copy={target} aria-label="Copy to clipboard">
+  <span class="i-copy"><Icon name="copy" size={16} /></span>
+  <span class="i-check"><Icon name="check" size={16} /></span>
+</button>
+
+<style>
+  .copy {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .copy:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .i-check {
+    display: none;
+    color: var(--mint);
+  }
+  .copy[data-state="copied"] .i-copy {
+    display: none;
+  }
+  .copy[data-state="copied"] .i-check {
+    display: block;
+  }
+  .copy[data-state="copied"] {
+    border-color: var(--mint-dim);
+  }
+</style>

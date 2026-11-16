@@ -8,15 +8,22 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Colors follow the lazynet brand palette (assets/assets-generator) on dark
+// terminals: mint for focus and actions, amber for commands and warnings.
+// Light variants keep at least ~4.5:1 contrast on white backgrounds.
 var (
-	Accent  = lipgloss.AdaptiveColor{Light: "#0B7A75", Dark: "#5FD7AF"}
+	Accent  = lipgloss.AdaptiveColor{Light: "#0B7A57", Dark: "#3FE0A0"}
 	Accent2 = lipgloss.AdaptiveColor{Light: "#1F5FAD", Dark: "#87AFFF"}
-	Muted   = lipgloss.AdaptiveColor{Light: "#6C6C6C", Dark: "#8A8A8A"}
-	Subtle  = lipgloss.AdaptiveColor{Light: "#C6C6C6", Dark: "#3A3A3A"}
-	Text    = lipgloss.AdaptiveColor{Light: "#1C1C1C", Dark: "#E4E4E4"}
-	Warn    = lipgloss.AdaptiveColor{Light: "#A15C00", Dark: "#FFD75F"}
+	Muted   = lipgloss.AdaptiveColor{Light: "#5F6B7A", Dark: "#8A97A8"}
+	Subtle  = lipgloss.AdaptiveColor{Light: "#B8BEC6", Dark: "#4B5563"}
+	Text    = lipgloss.AdaptiveColor{Light: "#1C1C1C", Dark: "#E8ECEF"}
+	Warn    = lipgloss.AdaptiveColor{Light: "#9A5B00", Dark: "#FFB547"}
 	Danger  = lipgloss.AdaptiveColor{Light: "#B3261E", Dark: "#FF6B6B"}
 	Success = lipgloss.AdaptiveColor{Light: "#2E7D32", Dark: "#87D787"}
+
+	// Surfaces used by the TUI.
+	BarBg     = lipgloss.AdaptiveColor{Light: "#E6EAEE", Dark: "#1A222D"}
+	Selection = lipgloss.AdaptiveColor{Light: "#CFE8DD", Dark: "#2A3A40"}
 
 	Title   = lipgloss.NewStyle().Bold(true).Foreground(Accent)
 	Label   = lipgloss.NewStyle().Foreground(Muted)
@@ -28,11 +35,13 @@ var (
 	Caution = lipgloss.NewStyle().Foreground(Warn)
 	Command = lipgloss.NewStyle().Foreground(Warn).Bold(true)
 	Header  = lipgloss.NewStyle().Bold(true).Foreground(Accent2)
+	Key     = lipgloss.NewStyle().Bold(true).Foreground(Accent)
+	Group   = lipgloss.NewStyle().Bold(true).Foreground(Muted)
 )
 
 // PlatformBadge renders a short colored platform tag.
 func PlatformBadge(p string) string {
-	c, txt := Muted, "  ?  "
+	c, txt := Subtle, " — "
 	switch p {
 	case "catalyst":
 		c, txt = lipgloss.AdaptiveColor{Light: "#1F5FAD", Dark: "#5FAFFF"}, "CAT"
@@ -40,8 +49,6 @@ func PlatformBadge(p string) string {
 		c, txt = lipgloss.AdaptiveColor{Light: "#6A1B9A", Dark: "#D787FF"}, "NXS"
 	case "asa":
 		c, txt = lipgloss.AdaptiveColor{Light: "#B3261E", Dark: "#FF8787"}, "ASA"
-	default:
-		txt = " ? "
 	}
 	return lipgloss.NewStyle().Foreground(c).Bold(true).Render(txt)
 }

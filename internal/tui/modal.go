@@ -53,7 +53,7 @@ func newInput(title, body string, fields ...[3]string) *modal {
 		ti.Cursor.SetMode(cursor.CursorStatic) // no blink timers: fewer redraws
 		if f[2] != "" {
 			// Shown as selected, like a pre-selected text field.
-			ti.TextStyle = lipgloss.NewStyle().Background(lipgloss.AdaptiveColor{Light: "#CFE8DD", Dark: "#2A3A40"}).Foreground(theme.Text)
+			ti.TextStyle = lipgloss.NewStyle().Background(theme.Selection).Foreground(theme.Text)
 		}
 		if i == 0 {
 			ti.Focus()
@@ -213,10 +213,15 @@ func (md *modal) view(maxW int) string {
 	if md.danger {
 		border = theme.Danger
 	}
+	body := md.body
+	if md.kind == modalHelp {
+		body = helpBody(maxW - 10)
+		w = min(lipgloss.Width(body)+6, maxW-4)
+	}
 	var b strings.Builder
 	b.WriteString(theme.Title.Foreground(border).Render(md.title) + "\n\n")
-	if md.body != "" {
-		b.WriteString(md.body + "\n")
+	if body != "" {
+		b.WriteString(body + "\n")
 	}
 	switch md.kind {
 	case modalInput:
@@ -236,13 +241,19 @@ func (md *modal) view(maxW int) string {
 			}
 			b.WriteString(marker + lbl + "  " + field.Render(in.View()) + "\n")
 		}
-		b.WriteString("\n" + theme.Dim.Render("enter submit · tab next field · esc cancel"))
+		b.WriteString("\n" + theme.Key.Render("enter") + theme.Dim.Render(" submit  ") +
+			theme.Key.Render("tab") + theme.Dim.Render(" next field  ") +
+			theme.Key.Render("esc") + theme.Dim.Render(" cancel"))
 	case modalConfirm:
 		yes := theme.Good.Render("[y] yes")
 		if md.danger {
 			yes = theme.Bad.Bold(true).Render("[y] yes, apply")
 		}
-		b.WriteString("\n" + yes + "    " + theme.Dim.Render("[n] no"))
+		no := theme.Dim.Render("[n] no")
+		if md.danger {
+			no += theme.Dim.Render("   (enter does not apply)")
+		}
+		b.WriteString("\n" + yes + "    " + no)
 	case modalHelp:
 		b.WriteString("\n" + theme.Dim.Render("press any key to close"))
 	}
@@ -257,21 +268,56 @@ func padRight(s string, w int) string {
 	return s
 }
 
-const helpText = `Navigation
-  ↑/↓ j/k     move / scroll          tab / h l   switch pane
-  1-4 [ ]     switch tab             mouse       click, wheel
-  enter       connect / load         r           refresh tab
+type helpSection struct {
+	title string
+	keys  [][2]string
+}
 
-Actions
-  p           query an interface     b           take a backup
-  v           change access VLAN     a           connect to an IP
-  w           toggle raw output
+var helpSections = []helpSection{
+	{"Navigation", [][2]string{{"↑↓  j k", "move, scroll"}, {"tab  h l", "switch pane"}, {"1–4  [ ]", "switch tab"}, {"enter", "connect, load"}, {"r", "refresh tab"}, {"mouse", "click, wheel"}}},
+	{"Actions", [][2]string{{"p", "query an interface"}, {"v", "change access VLAN"}, {"b", "take a backup"}, {"a", "connect to an IP"}, {"w", "raw output (Interface)"}}},
+	{"Logs tab", [][2]string{{"f", "date/time range"}, {"/", "text filter"}, {"s", "severity filter"}}},
+	{"Backups tab", [][2]string{{"↑↓", "select a backup"}, {"enter", "diff vs previous"}}},
+	{"General", [][2]string{{"?", "this help"}, {"esc", "close a dialog"}, {"q  ctrl+c", "quit"}}},
+}
 
-Logs tab
-  f           date/time range        /           text filter
-  s           cycle severity filter
-
-Backups tab
-  ↑/↓         select a backup        enter       diff vs previous
-
-  ?  help       q / ctrl+c  quit`
+// helpBody lays the key reference out in two columns when there is room
+// (one otherwise), so no line ever wraps inside the dialog.
+func helpBody(width int) string {
+	const keyW, descW = 10, 24
+	block := func(sec helpSection) []string {
+		out := []string{theme.Group.Render(sec.title)}
+		for _, k := range sec.keys {
+			out = append(out, "  "+theme.Key.Render(padRight(k[0], keyW))+padRight(k[1], descW))
+		}
+		return append(out, "")
+	}
+	colW := 2 + keyW + descW
+	if width < 2*colW+4 {
+		var lines []string
+		for _, sec := range helpSections {
+			lines = append(lines, block(sec)...)
+		}
+		return strings.TrimRight(strings.Join(lines, "\n"), "\n")
+	}
+	var left, right []string
+	for i, sec := range helpSections {
+		if i%2 == 0 {
+			left = append(left, block(sec)...)
+		} else {
+			right = append(right, block(sec)...)
+		}
+	}
+	var b strings.Builder
+	for i := 0; i < max(len(left), len(right)); i++ {
+		l, r := "", ""
+		if i < len(left) {
+			l = left[i]
+		}
+		if i < len(right) {
+			r = right[i]
+		}
+		b.WriteString(padRight(l, colW) + "    " + r + "\n")
+	}
+	return strings.TrimRight(b.String(), "\n ")
+}

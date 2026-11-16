@@ -74,7 +74,7 @@ func (m model) deviceLines(h int) []string {
 	for i := m.listOffset; i < len(m.rows) && len(out) < visible; i++ {
 		r := m.rows[i]
 		if r.device == nil {
-			out = append(out, theme.Dim.Render(strings.ToUpper(r.group)))
+			out = append(out, theme.Group.Render(strings.ToUpper(r.group)))
 			continue
 		}
 		name := r.device.Label()
@@ -152,19 +152,38 @@ func (m model) View() string {
 	return strings.Join(lines, "\n")
 }
 
+// statusLine is a full-width bar: a state icon and the last message on the
+// left, global keys on the right. Every segment carries the bar background,
+// because a nested style's reset would otherwise punch holes in it.
 func (m model) statusLine() string {
-	st := theme.Dim
-	if m.isError {
-		st = theme.Bad
+	bg := theme.BarBg
+	on := func(st lipgloss.Style, s string) string { return st.Background(bg).Render(s) }
+	icon, msgStyle := on(theme.Key, "●"), lipgloss.NewStyle().Foreground(theme.Text)
+	switch {
+	case m.busy > 0:
+		icon = on(lipgloss.NewStyle().Foreground(theme.Warn), ansi.Strip(m.spin.View()))
+	case m.isError:
+		icon, msgStyle = on(lipgloss.NewStyle().Foreground(theme.Danger).Bold(true), "✗"), lipgloss.NewStyle().Foreground(theme.Danger)
+	case strings.HasPrefix(m.status, "✓"):
+		icon = on(lipgloss.NewStyle().Foreground(theme.Success).Bold(true), "✓")
 	}
-	left := m.status
-	if m.busy > 0 {
-		left = m.spin.View() + " " + left
+	text := strings.TrimSpace(strings.TrimPrefix(m.status, "✓"))
+	keys := func(pairs ...string) string {
+		var b strings.Builder
+		for i := 0; i < len(pairs); i += 2 {
+			if i > 0 {
+				b.WriteString(on(theme.Dim, "  "))
+			}
+			b.WriteString(on(theme.Key, pairs[i]) + on(theme.Dim, " "+pairs[i+1]))
+		}
+		return b.String()
 	}
-	right := theme.Dim.Render("? help · q quit")
-	room := m.width - lipgloss.Width(right) - 2
-	left = ansi.Truncate(st.Render(left), max(0, room), "…")
-	return " " + left + strings.Repeat(" ", max(1, room-lipgloss.Width(left)+1)) + right
+	right := keys("?", "help", "q", "quit") + on(lipgloss.NewStyle(), " ")
+	left := on(lipgloss.NewStyle(), " ") + icon + on(lipgloss.NewStyle(), " ")
+	room := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 3 // keep a gap before the keys
+	msg := on(msgStyle, ansi.Truncate(text, max(0, room), "…"))
+	gap := on(lipgloss.NewStyle(), strings.Repeat(" ", max(1, m.width-lipgloss.Width(left)-lipgloss.Width(msg)-lipgloss.Width(right))))
+	return left + msg + gap + right
 }
 
 // overlay draws fg centered on top of the base lines.

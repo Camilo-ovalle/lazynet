@@ -61,7 +61,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q":
 		return m, tea.Quit
 	case "?":
-		m.openModal(&modal{kind: modalHelp, title: "lazynet keys", body: helpText})
+		m.openModal(&modal{kind: modalHelp, title: "lazynet keys"})
 	case "tab", "shift+tab":
 		m.focus = 1 - m.focus
 	case "h", "left":

@@ -179,6 +179,8 @@ func readAudit(t *testing.T, a *app.App) []audit.Record {
 
 func TestTUIVlanChange(t *testing.T) {
 	h, a := newHarness(t)
+	h.key("enter") // connect first, as a user would: the Info tab is loaded
+	h.expect("C9300-48P")
 	vlanForm := func(port, vlan string) {
 		h.key("v")
 		h.expect("Change access VLAN")
@@ -212,6 +214,13 @@ func TestTUIVlanChange(t *testing.T) {
 	if !strings.Contains(h.status(), "configuration saved") {
 		t.Fatalf("status: %q", h.status())
 	}
+	// Regression: device info must survive the change (it used to reset to
+	// "enter connect and load device information"), and the changed port is
+	// re-read from the device.
+	h.expect("C9300-48P", "FCW2318L0AB")
+	h.key("2")
+	h.key("esc") // close the interface prompt; the reloaded port is shown
+	h.expect("GigabitEthernet1/0/7", "Access VLAN  20")
 
 	// Verify on the device through the UI.
 	h.key("p")
@@ -258,4 +267,30 @@ func TestTUIAdhocAndSmallTerminal(t *testing.T) {
 	h.expect("ASA5516", "JAD21430ABC")
 	h.send(tea.WindowSizeMsg{Width: 40, Height: 10})
 	h.expect("resize your terminal")
+}
+
+// A prefilled field behaves as selected: typing replaces the remembered value
+// instead of appending to it ("1/0/25" + "1/0/7" used to become "1/0/251/0/7").
+func TestTUIPrefilledFieldIsReplaced(t *testing.T) {
+	h, _ := newHarness(t)
+	h.key("enter")
+	h.key("2")
+	h.key("1/0/25")
+	h.key("enter")
+	h.expect("GigabitEthernet1/0/25")
+	h.key("v") // the port field is prefilled with 1/0/25
+	h.key("1/0/7")
+	h.key("tab")
+	h.key("20")
+	h.key("enter")
+	h.expect("Confirm configuration change", "interface GigabitEthernet1/0/7")
+	h.key("n")
+
+	// Moving the cursor first keeps the value for editing.
+	h.key("p")
+	h.send(tea.KeyMsg{Type: tea.KeyEnd})
+	h.send(tea.KeyMsg{Type: tea.KeyBackspace})
+	h.key("6")
+	h.key("enter")
+	h.expect("GigabitEthernet1/0/26")
 }

@@ -61,7 +61,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q":
 		return m, tea.Quit
 	case "?":
-		m.openModal(&modal{kind: modalHelp, title: "lazynet keys", body: helpText})
+		m.openModal(&modal{kind: modalHelp, title: "lazynet keys"})
 	case "tab", "shift+tab":
 		m.focus = 1 - m.focus
 	case "h", "left":
@@ -493,8 +493,11 @@ func (m model) onApply(msg applyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	// Device info is unaffected by a VLAN change; only the port is. Re-read
+	// that port so the Interface tab shows the new VLAN as the device reports it.
 	st := m.state(msg.dev.Label())
-	st.iface, st.info = nil, nil // stale now
+	st.iface, st.ifaceErr, st.ifacePort = nil, nil, msg.plan.Port
+	reload := m.start(msg.dev.Label(), tabIface, loadIface(m.app, m.env, msg.dev, msg.plan.Port))
 	m.setStatus(fmt.Sprintf("✓ %s is now in VLAN %d (verified)", msg.plan.Port, msg.plan.TargetVlan), false)
 	save := device.SaveRequest(device.Catalyst).Display()
 	dev := msg.dev
@@ -512,5 +515,5 @@ func (m model) onApply(msg applyMsg) (tea.Model, tea.Cmd) {
 			return m.start(dev.Label(), tabIface, saveConfig(m.app, m.env, dev, save))
 		}))
 	m.refreshContent(false)
-	return m, nil
+	return m, reload
 }

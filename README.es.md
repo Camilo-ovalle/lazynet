@@ -244,6 +244,22 @@ lazynet version
 lazynet --demo     # pruébalo de inmediato con equipos emulados
 ```
 
+### Actualizar
+
+```sh
+lazynet update           # instala la última versión
+lazynet update --check   # solo indica si hay una nueva
+lazynet changelog        # qué cambió en cada versión
+```
+
+`lazynet update` actualiza lazynet de la misma forma en que lo instalaste:
+- script de instalación, tarball o `go install`: reemplaza el binario donde está;
+- paquete `.deb` o `.rpm`, incluido el del repositorio APT: descarga el paquete nuevo y lo instala con `dpkg` o `rpm`.
+
+Cada descarga se verifica contra los checksums SHA-256 de la versión antes de usarla. `sudo` pide tu contraseña cuando la ubicación de la instalación requiere root.
+
+La TUI consulta GitHub como máximo una vez al día y te avisa cuando sale una versión nueva. Pulsa `u` para actualizar (lazynet se cierra, se actualiza y vuelve a abrirse), `s` para saltar esa versión, o `esc` para decidir más tarde. El aviso espera a que no haya ninguna operación ni confirmación en curso. Después de actualizar, la TUI muestra qué cambió. En redes sin acceso a internet, pon `check_updates: false` en `config.yml`. El modo demo nunca consulta.
+
 ## Primeros pasos
 
 **1. Pruébalo sin red.** El modo demo levanta un Catalyst, un Nexus y un ASA emulados en localhost. No toca tu red, tu keyring ni tus archivos.
@@ -290,6 +306,8 @@ lazynet vlan set core-sw1 -p 1/0/7 -v 20      # validado, confirmado, verificado
 | `backup list \| show \| diff <equipo>` | Consulta y compara backups |
 | `vlan set <equipo> -p PUERTO -v VLAN` | Cambia una VLAN de acceso (Catalyst) |
 | `inventory list \| add \| check \| init \| path` | Administra el inventario |
+| `update [--check]` | Actualiza lazynet a la última versión |
+| `changelog [--since V]` | Notas de cada versión |
 | `completion bash \| zsh \| fish` | Autocompletado, incluidos los nombres de equipos |
 
 Opciones globales:
@@ -354,6 +372,7 @@ lazynet sigue la especificación XDG de directorios. Con `LAZYNET_HOME` puedes g
 | `~/.config/lazynet/known_hosts` | Llaves SSH confiables |
 | `~/.local/share/lazynet/backups/` | Repositorio git con una carpeta por equipo |
 | `~/.local/share/lazynet/audit.log` | Log de auditoría de cambios (JSON lines) |
+| `~/.local/share/lazynet/update.json` | Notas de versión ya mostradas, versión saltada, última consulta de actualizaciones |
 | `~/.cache/lazynet/detected.json` | Caché de detección de plataforma |
 
 <details>
@@ -396,6 +415,7 @@ ssh_timeout: 15s
 command_timeout: 90s
 default_username: ""
 legacy_ssh: true       # ofrece también algoritmos antiguos (CBC, group14-sha1, ssh-rsa) después de los modernos
+check_updates: true    # la TUI consulta GitHub por versiones nuevas, como máximo una vez al día
 ```
 
 </details>
@@ -462,12 +482,13 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo
 | `internal/parse` | Parsers compartidos por varias plataformas (interfaces, logs, relojes) |
 | `internal/mockssh` | Servidor SSH que emula el CLI de cada plataforma (tests y modo demo) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Backups en git, log de auditoría, caché de credenciales |
+| `internal/update` | Consulta de versiones, `lazynet update`, notas de versión del `CHANGELOG.md` embebido |
 | `assets/` | Logo, íconos e imágenes del README ([generador](assets/assets-generator)) |
 | `site/` | Página de presentación ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), hecha con Astro |
 
 </details>
 
-Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. El workflow de release también publica el repositorio APT firmado en GitHub Pages. La configuración inicial, los pasos para publicar y el funcionamiento del repositorio APT están en [docs/releasing.md](docs/releasing.md) (en inglés).
+Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. Sus notas salen de [CHANGELOG.md](CHANGELOG.md) (en inglés), que también va embebido en el binario para el aviso "What's new" de la TUI. El workflow de release también publica el repositorio APT firmado en GitHub Pages. La configuración inicial, los pasos para publicar y el funcionamiento del repositorio APT están en [docs/releasing.md](docs/releasing.md) (en inglés).
 
 Por ahora, la contribución más valiosa son reportes de bugs que incluyan la salida `show` de tus equipos, sin datos sensibles. Esas salidas se convierten en fixtures para los tests de los parsers.
 

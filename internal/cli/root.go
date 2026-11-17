@@ -69,6 +69,7 @@ Run it without arguments for the interactive TUI, or use subcommands:
   lazynet vlan set core-sw1 --port 1/0/1 --vlan 110
   lazynet logs core-sw1 --from "2026-11-01 08:00" --to "2026-11-01 18:00"
   lazynet backup --group core
+  lazynet update
 
 Everything is read-only ('show' commands) except 'vlan set', which always
 shows the exact commands and asks for confirmation before applying them.
@@ -80,14 +81,19 @@ emulated devices without touching the network.`,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			for c := cmd; c != nil; c = c.Parent() {
 				switch c.Name() {
-				case "version", "help", "mock", "completion", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
+				case "version", "help", "mock", "completion", "update", "changelog", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
 					return nil // must not touch the user's files
 				}
 			}
 			return g.load()
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return tui.Run(g.app)
+			res, err := tui.Run(g.app, tui.Options{Updates: g.updates()})
+			if err != nil || res.UpdateTo == "" {
+				return err
+			}
+			current, _, _ := buildInfo()
+			return updateFromTUI(cmd.Context(), current)
 		},
 	}
 	pf := root.PersistentFlags()
@@ -97,7 +103,8 @@ emulated devices without touching the network.`,
 	pf.IntVar(&g.sshPort, "ssh-port", 0, "SSH port (default 22 or the inventory value)")
 	root.AddCommand(
 		newInfoCmd(g), newIfaceCmd(g), newVlanCmd(g), newLogsCmd(g),
-		newBackupCmd(g), newInventoryCmd(g), newVersionCmd(), newMockCmd(),
+		newBackupCmd(g), newInventoryCmd(g), newUpdateCmd(g), newChangelogCmd(g),
+		newVersionCmd(), newMockCmd(),
 	)
 	var walk func(*cobra.Command)
 	walk = func(c *cobra.Command) {

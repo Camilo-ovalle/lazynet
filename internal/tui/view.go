@@ -144,7 +144,7 @@ func (m model) View() string {
 	}
 	lines = append(lines, m.statusLine())
 	if m.modal != nil {
-		lines = overlay(lines, m.modal.view(m.width), m.width)
+		lines = overlay(lines, m.modal.view(m.width, m.height), m.width)
 	}
 	return strings.Join(lines, "\n")
 }

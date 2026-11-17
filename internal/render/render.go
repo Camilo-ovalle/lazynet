@@ -14,6 +14,7 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/platform"
 	"github.com/Camilo-ovalle/lazynet/internal/theme"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // PlatformBadge renders the registered badge of a platform ("CAT"), or a dim
@@ -134,4 +135,68 @@ func Commands(lines []string) string {
 		b.WriteString("  " + theme.Command.Render(l) + "\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// ReleaseNotes renders the markdown of a changelog section for the terminal,
+// wrapped to width: "### Added" becomes a heading, "- item" a bullet, and
+// `code` is highlighted. Source lines wrapped by hand are joined first.
+func ReleaseNotes(md string, width int) []string {
+	width = max(width, 20)
+	type block struct {
+		kind string // "h", "li", "p" or "" (blank line)
+		text string
+	}
+	var blocks []block
+	for _, l := range strings.Split(md, "\n") {
+		t := strings.TrimSpace(l)
+		switch {
+		case t == "":
+			if len(blocks) > 0 && blocks[len(blocks)-1].kind != "" {
+				blocks = append(blocks, block{})
+			}
+		case strings.HasPrefix(t, "#"):
+			blocks = append(blocks, block{"h", strings.TrimSpace(strings.TrimLeft(t, "#"))})
+		case strings.HasPrefix(t, "- ") || strings.HasPrefix(t, "* "):
+			blocks = append(blocks, block{"li", t[2:]})
+		case len(blocks) > 0 && (blocks[len(blocks)-1].kind == "li" || blocks[len(blocks)-1].kind == "p"):
+			blocks[len(blocks)-1].text += " " + t
+		default:
+			blocks = append(blocks, block{"p", t})
+		}
+	}
+	var out []string
+	for _, b := range blocks {
+		switch b.kind {
+		case "":
+			out = append(out, "")
+		case "h":
+			out = append(out, theme.Header.Render(b.text))
+		case "li":
+			for i, l := range strings.Split(ansi.Wordwrap(inlineCode(b.text), width-4, ""), "\n") {
+				prefix := "    "
+				if i == 0 {
+					prefix = "  " + theme.Title.Render("•") + " "
+				}
+				out = append(out, prefix+l)
+			}
+		default:
+			out = append(out, strings.Split(ansi.Wordwrap(inlineCode(b.text), width, ""), "\n")...)
+		}
+	}
+	for len(out) > 0 && out[len(out)-1] == "" {
+		out = out[:len(out)-1]
+	}
+	return out
+}
+
+// inlineCode highlights `code` spans.
+func inlineCode(s string) string {
+	parts := strings.Split(s, "`")
+	if len(parts)%2 == 0 { // unbalanced: leave it alone
+		return s
+	}
+	for i := 1; i < len(parts); i += 2 {
+		parts[i] = theme.Key.Render(parts[i])
+	}
+	return strings.Join(parts, "")
 }

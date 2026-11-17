@@ -221,6 +221,22 @@ lazynet version
 lazynet --demo     # try it right away with emulated devices
 ```
 
+### Updating
+
+```sh
+lazynet update           # install the latest release
+lazynet update --check   # only report whether there is one
+lazynet changelog        # what changed in each release
+```
+
+`lazynet update` updates lazynet the same way you installed it:
+- install script, tarball or `go install`: replaces the binary where it is;
+- `.deb` or `.rpm` package, including the one from the APT repository: downloads the new package and installs it with `dpkg` or `rpm`.
+
+Every download is checked against the release's SHA-256 checksums before it is used. `sudo` asks for your password when the install location needs root.
+
+The TUI checks GitHub at most once a day and tells you when a new release is out. Press `u` to update (lazynet closes, updates and opens again), `s` to skip that version, or `esc` to decide later. The banner waits until no operation or confirmation is in progress. After an update, the TUI shows what changed. On networks without internet access, set `check_updates: false` in `config.yml`. Demo mode never checks.
+
 ## Quick start
 
 **1. Try it without a network.** Demo mode runs emulated Catalyst, Nexus and ASA devices on localhost. It doesn't touch your network, keyring or files.
@@ -267,6 +283,8 @@ lazynet vlan set core-sw1 -p 1/0/7 -v 20      # validated, confirmed, verified, 
 | `backup list \| show \| diff <device>` | Browse and compare backups |
 | `vlan set <device> -p PORT -v VLAN` | Change an access VLAN (Catalyst) |
 | `inventory list \| add \| check \| init \| path` | Manage the inventory |
+| `update [--check]` | Update lazynet to the latest release |
+| `changelog [--since V]` | Release notes of every version |
 | `completion bash \| zsh \| fish` | Shell completion, including device names |
 
 These options work with every command:
@@ -328,6 +346,7 @@ lazynet follows the XDG base directory spec. Set `LAZYNET_HOME` to keep everythi
 | `~/.config/lazynet/known_hosts` | Trusted SSH host keys |
 | `~/.local/share/lazynet/backups/` | Git repository with one folder per device |
 | `~/.local/share/lazynet/audit.log` | Change audit log (JSON lines) |
+| `~/.local/share/lazynet/update.json` | Release notes already shown, skipped version, last update check |
 | `~/.cache/lazynet/detected.json` | Cached platform detection |
 
 <details>
@@ -370,6 +389,7 @@ ssh_timeout: 15s
 command_timeout: 90s
 default_username: ""
 legacy_ssh: true       # also offer older algorithms (CBC, group14-sha1, ssh-rsa) after modern ones
+check_updates: true    # the TUI asks GitHub for new releases, at most once a day
 ```
 
 </details>
@@ -436,12 +456,13 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # standa
 | `internal/parse` | Parsers shared by several platforms (interfaces, logs, clocks) |
 | `internal/mockssh` | SSH server that emulates each platform's CLI (tests and demo mode) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Git backups, audit log, credential cache |
+| `internal/update` | Release check, `lazynet update`, release notes from the embedded `CHANGELOG.md` |
 | `assets/` | Logo, icons and README images ([generator](assets/assets-generator)) |
 | `site/` | Landing page ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), built with Astro |
 
 </details>
 
-Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. The release workflow also publishes the signed APT repository to GitHub Pages. See [docs/releasing.md](docs/releasing.md) for the one-time setup, the release steps and how the APT repository works.
+Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. Their notes come from [CHANGELOG.md](CHANGELOG.md), which is also embedded in the binary for the TUI's "What's new" banner. The release workflow also publishes the signed APT repository to GitHub Pages. See [docs/releasing.md](docs/releasing.md) for the one-time setup, the release steps and how the APT repository works.
 
 Bug reports with sanitized `show` output from your devices are the most valuable contribution right now. They become parser test fixtures.
 

@@ -35,11 +35,16 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      # The release notes are the tag's CHANGELOG.md section. This step fails
+      # when it is missing, so nothing is published without notes. The same
+      # text is embedded in the binary and shown by the TUI after an update.
+      - name: Release notes from CHANGELOG.md
+        run: sh scripts/release-notes.sh "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

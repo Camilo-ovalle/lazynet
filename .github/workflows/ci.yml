@@ -23,6 +23,8 @@ jobs:
         run: CGO_ENABLED=0 go build -trimpath -o lazynet ./cmd/lazynet && ./lazynet version
       - name: shellcheck
         run: shellcheck scripts/*.sh
+      - name: release notes script
+        run: sh scripts/release-notes.sh v0.1.0 >/dev/null
 
   # Builds every package with GoReleaser (snapshot, nothing is published) and
   # installs lazynet the way users will: from a signed APT repository and with

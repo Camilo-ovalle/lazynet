@@ -32,6 +32,7 @@ archives:
       - NOTICE
       - README.md
       - README.es.md
+      - CHANGELOG.md
       - completions/*
 
 checksum:
@@ -62,7 +63,11 @@ nfpms:
         dst: /usr/share/doc/lazynet/LICENSE
       - src: NOTICE
         dst: /usr/share/doc/lazynet/NOTICE
+      - src: CHANGELOG.md
+        dst: /usr/share/doc/lazynet/CHANGELOG.md
 
+# Release notes come from CHANGELOG.md (release.yml passes --release-notes).
+# This commit list is only used by snapshot builds.
 changelog:
   sort: asc
   filters:

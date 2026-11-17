@@ -7,8 +7,9 @@ This guide covers publishing a release and the APT repository that makes
 
 ```
 git tag v0.1.0 ──► release.yml
-                   ├─ goreleaser job ──► GitHub Release: tarballs, .deb, .rpm, checksums.txt
-                   │                     (used by install.sh and manual downloads)
+                   ├─ goreleaser job ──► GitHub Release: tarballs, .deb, .rpm, checksums.txt,
+                   │                     notes from the tag's CHANGELOG.md section
+                   │                     (used by install.sh, lazynet update and manual downloads)
                    ├─ apt-repo job ────► downloads the release .debs, signs the repo
                    │                     ──► gh-pages branch (storage only)
                    └─ pages job ───────► dispatches pages.yml on main
@@ -95,19 +96,57 @@ github-pages due to environment protection rules*.
 
 ## Cutting a release
 
-1. Make sure the CI is green on `main`. The `packaging` job has already built
+1. Write the release notes. In `CHANGELOG.md`, rename `## [Unreleased]` to
+   `## [X.Y.Z] - YYYY-MM-DD`, review its entries (written for users, under
+   `### Added`, `### Changed`, `### Removed`, `### Fixed` or `### Security`),
+   and add a new empty `## [Unreleased]` section above it. Merge that change
+   to `main` like any other (for example on a `chore/release-vX.Y.Z` branch).
+   `go test ./internal/update` checks that the file still parses, and
+   `sh scripts/release-notes.sh vX.Y.Z` previews the notes.
+2. Make sure the CI is green on `main`. The `packaging` job has already built
    every package, built an APT repository and installed lazynet from it.
-2. Tag the release and push the tag (semantic versioning: `vMAJOR.MINOR.PATCH`):
+3. Tag the release and push the tag (semantic versioning: `vMAJOR.MINOR.PATCH`):
 
    ```sh
    git switch main && git pull
-   git tag -a v0.1.0 -m "lazynet v0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m "lazynet v0.2.0"
+   git push origin v0.2.0
    ```
 
-3. Watch the run in *Actions → release*. When it finishes:
-   - *Releases* shows the tarballs, `.deb`, `.rpm` and `checksums.txt`;
+4. Watch the run in *Actions → release*. When it finishes:
+   - *Releases* shows the tarballs, `.deb`, `.rpm` and `checksums.txt`, and
+     the notes from `CHANGELOG.md`;
    - `gh-pages` contains the updated APT repository.
+
+## Release notes and updates
+
+`CHANGELOG.md` is the single source of the release notes:
+
+- **GitHub release notes.** `scripts/release-notes.sh vX.Y.Z` prints the
+  section of a version. The release workflow passes it to GoReleaser and
+  **fails before publishing anything** if the tag has no section, so a
+  release can't go out without notes.
+- **"What's new" in the TUI.** The file is embedded in the binary
+  (`changelog.go`). When lazynet opens after an update, it shows the sections
+  between the version that last ran and the running one (recorded in
+  `~/.local/share/lazynet/update.json`). `lazynet changelog` prints them too.
+  Because the notes travel inside the binary, this works with every install
+  method and without internet access.
+- **The update banner and `lazynet update`** read
+  `https://api.github.com/repos/Camilo-ovalle/lazynet/releases/latest`
+  (stable releases only: drafts and pre-releases are never offered). The
+  TUI asks at most once a day, and never with `check_updates: false` or in
+  demo mode. Only release builds (`X.Y.Z`) check; `make build` and
+  `go run` builds are development builds and never do.
+
+`lazynet update` downloads release files by name, so keep these names stable
+in `.goreleaser.yaml`:
+`lazynet_<version>_linux_<arch>.tar.gz` (with the `lazynet` binary at the
+root), `lazynet_<version>_linux_<arch>.deb`,
+`lazynet_<version>_linux_<arch>.rpm` and `checksums.txt`. It refuses any
+download whose SHA-256 is not listed in `checksums.txt`. A `.deb` installed
+from the APT repository is upgraded the same way, with the `.deb` of the
+GitHub release.
 
 ## Republishing the APT repository
 
@@ -131,6 +170,14 @@ lazynet version
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+On a machine that still runs the previous release, check the update path:
+
+```sh
+lazynet update --check   # reports the new version
+lazynet update           # installs it and prints what changed
+lazynet                  # (on another machine) the banner offers the update; after it, "What's new"
 ```
 
 ## Testing the repository locally

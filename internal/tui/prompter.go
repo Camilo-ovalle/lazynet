@@ -74,4 +74,7 @@ func (p prompter) TrustHostKey(addr, keyType, fp string) (bool, error) {
 }
 
 // env holds what must be shared across model copies.
-type env struct{ program *tea.Program }
+type env struct {
+	program  *tea.Program
+	updateTo string // set when the user chose to update lazynet
+}

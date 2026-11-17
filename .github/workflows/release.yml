@@ -1,32 +1,19 @@
-# Push a tag like v0.1.0 to publish a release:
-#   git tag -a v0.1.0 -m "lazynet v0.1.0" && git push origin v0.1.0
+# Push a tag like v0.2.0 to publish a release:
+#   git tag -a v0.2.0 -m "lazynet v0.2.0" && git push origin v0.2.0
 #
-# To (re)publish an existing release to the APT repository without building
-# again, run this workflow manually (Actions > release > Run workflow) with
-# the release tag.
-#
-# Required repository secrets for the APT repository:
-#   APT_GPG_PRIVATE_KEY  ASCII-armored private key used to sign the repo
-#   APT_GPG_PASSPHRASE   its passphrase (may be empty)
-# The APT repository is built by scripts/build-apt-repo.sh and stored on the
-# gh-pages branch. pages.yml then deploys it together with the landing page
-# (Settings > Pages > Source: GitHub Actions). See docs/releasing.md.
+# GoReleaser builds the tarballs, .deb, .rpm and checksums.txt and creates the
+# GitHub release. The install script and `lazynet update` download from it.
+# See docs/releasing.md.
 name: release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing release tag to publish to the APT repository (e.g. v0.1.0)"
-        required: true
 
 permissions:
   contents: write
 
 jobs:
   goreleaser:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,72 +34,3 @@ jobs:
           args: release --clean --release-notes ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  apt-repo:
-    needs: goreleaser
-    # Runs after a successful build, or on its own for workflow_dispatch
-    # (where the goreleaser job is skipped).
-    if: ${{ !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    # Never let two publishes race on the gh-pages branch.
-    concurrency:
-      group: apt-repo
-      cancel-in-progress: false
-    env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
-    steps:
-      # The source must be checked out at the workspace root:
-      # actions-gh-pages runs git commands there.
-      - uses: actions/checkout@v4
-      - name: Download the .deb packages from the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release download "$TAG" --pattern '*.deb' --dir debs
-      - name: Fetch the published repository (keeps previous versions)
-        run: |
-          mkdir -p _site
-          set +e
-          git ls-remote --exit-code --heads origin gh-pages >/dev/null
-          rc=$?
-          set -e
-          case $rc in
-            0) git fetch --depth 1 origin gh-pages && git archive FETCH_HEAD | tar -x -C _site ;;
-            2) echo "No gh-pages branch yet: this is the first publication." ;;
-            *) echo "could not query gh-pages (exit $rc)"; exit "$rc" ;;
-          esac
-      - name: Install apt-ftparchive
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq apt-utils
-      - name: Import the signing key
-        env:
-          GPG_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
-        run: |
-          printf '%s\n' "$GPG_KEY" | gpg --batch --import
-          echo "APT_GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')" >> "$GITHUB_ENV"
-      - name: Build and sign the APT repository
-        env:
-          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
-        run: sh scripts/build-apt-repo.sh debs _site
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _site
-          publish_branch: gh-pages
-          keep_files: true # extra safety: never drop files already published
-          commit_message: "apt: publish ${{ env.TAG }}"
-
-  # Redeploy the site so the new packages are served (gh-pages is storage only).
-  # pages.yml is dispatched on main instead of being called from here: the
-  # github-pages environment only accepts deployments from main, and this
-  # workflow runs on a tag. GITHUB_TOKEN is allowed to dispatch workflows.
-  pages:
-    needs: apt-repo
-    if: ${{ !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Redeploy the site with the new packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main

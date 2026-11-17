@@ -27,8 +27,9 @@ jobs:
         run: sh scripts/release-notes.sh v0.1.0 >/dev/null
 
   # Builds every package with GoReleaser (snapshot, nothing is published) and
-  # installs lazynet the way users will: from a signed APT repository and with
-  # install.sh. Catches packaging and repository problems before a release.
+  # installs lazynet the way users will: with install.sh (install, rerun and
+  # update in place) and from the .deb. Catches packaging problems before a
+  # release.
   packaging:
     runs-on: ubuntu-latest
     steps:
@@ -43,24 +44,6 @@ jobs:
           distribution: goreleaser
           version: "~> v2"
           args: release --snapshot --clean
-      - name: Build a signed APT repository with a throwaway key
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq apt-utils
-          gpg --batch --passphrase '' --quick-gen-key "lazynet CI <ci@invalid>" rsa3072 sign never
-          APT_GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}') \
-            sh scripts/build-apt-repo.sh dist _apt
-      - name: apt install lazynet
-        run: |
-          python3 -m http.server 8080 --bind 127.0.0.1 --directory _apt >/dev/null 2>&1 &
-          sleep 1
-          sudo install -m 0644 _apt/lazynet.gpg /usr/share/keyrings/lazynet.gpg
-          echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] http://127.0.0.1:8080 stable main" |
-            sudo tee /etc/apt/sources.list.d/lazynet.list
-          sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/lazynet.list -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
-          sudo apt-get install -y lazynet
-          lazynet version
-          test -f /usr/share/doc/lazynet/NOTICE
-          test -f /usr/share/bash-completion/completions/lazynet
       - name: install.sh from a local copy of the release layout
         run: |
           ver=$(jq -r .version dist/metadata.json)
@@ -68,8 +51,27 @@ jobs:
           cp "dist/lazynet_${ver}_linux_amd64.tar.gz" dist/checksums.txt "_rel/download/v$ver/"
           python3 -m http.server 8081 --bind 127.0.0.1 --directory _rel >/dev/null 2>&1 &
           sleep 1
-          LAZYNET_BASE_URL=http://127.0.0.1:8081 LAZYNET_VERSION="$ver" LAZYNET_INSTALL_DIR="$HOME/bin" sh scripts/install.sh
-          "$HOME/bin/lazynet" version
+          export LAZYNET_BASE_URL=http://127.0.0.1:8081 LAZYNET_VERSION="$ver"
+          # Fresh install into a chosen directory.
+          LAZYNET_INSTALL_DIR="$HOME/bin" sh scripts/install.sh
+          "$HOME/bin/lazynet" version | grep -F "lazynet $ver "
+          # Rerun: an existing install in PATH is found and left alone.
+          PATH="$HOME/bin:$PATH" sh scripts/install.sh | tee out.txt
+          grep -F "already installed in $HOME/bin" out.txt
+          # Update: an older lazynet in PATH is replaced where it is.
+          mkdir -p "$HOME/old"
+          printf '#!/bin/sh\necho "lazynet 0.0.1 (commit x, built y)"\n' > "$HOME/old/lazynet"
+          chmod 0755 "$HOME/old/lazynet"
+          PATH="$HOME/old:$PATH" sh scripts/install.sh | tee out.txt
+          grep -F "updated from 0.0.1 to $ver in $HOME/old/lazynet" out.txt
+          "$HOME/old/lazynet" version | grep -F "lazynet $ver "
+      - name: .deb package
+        run: |
+          sudo dpkg -i dist/lazynet_*_linux_amd64.deb
+          /usr/bin/lazynet version
+          test -f /usr/share/doc/lazynet/NOTICE
+          test -f /usr/share/doc/lazynet/CHANGELOG.md
+          test -f /usr/share/bash-completion/completions/lazynet
 
   # The landing page must always build (recordings are only made on deploy).
   site:

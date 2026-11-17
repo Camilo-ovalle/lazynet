@@ -113,44 +113,19 @@ lazynet funciona en **Linux** (amd64 y arm64). El soporte para Windows y PowerSh
 
 lazynet es un único binario estático, sin dependencias. Hay releases para **Linux amd64 y arm64**.
 
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+Con eso basta para la mayoría. Para actualizar más adelante, ejecuta `lazynet update`.
+
 | Método | Ideal para | Cómo se actualiza |
 |---|---|---|
-| [Repositorio APT](#apt-debian-ubuntu) (recomendado) | Debian, Ubuntu y derivados | `sudo apt upgrade` |
-| [Script de instalación](#script-de-instalación) | Cualquier distribución Linux | Volviendo a ejecutar el script |
-| [Paquete .deb / .rpm](#paquetes-deb-y-rpm) | Instalaciones puntuales, Fedora, RHEL | Instalando el paquete nuevo |
-| [Tarball](#tarball) | Instalación manual o sin internet | Reemplazando el binario |
-| [go install](#go-install) | Desarrolladores Go | Repitiendo con `@latest` |
+| [Script de instalación](#script-de-instalación) (recomendado) | Cualquier distribución Linux | `lazynet update`, o volviendo a ejecutar el script |
+| [Paquete .deb / .rpm](#paquetes-deb-y-rpm) | Equipos administrados con paquetes | `lazynet update` |
+| [Tarball](#tarball) | Instalación manual o sin internet | `lazynet update`, o reemplazando el binario |
+| [go install](#go-install) | Desarrolladores Go | `lazynet update`, o `go install …@latest` |
 | [Desde el código](#compilar-desde-el-código) | Quien contribuye | `git pull && make build` |
-
-### APT (Debian, Ubuntu)
-
-```sh
-curl -fsSL https://camilo-ovalle.github.io/lazynet/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.github.io/lazynet stable main" | sudo tee /etc/apt/sources.list.d/lazynet.list
-sudo apt update && sudo apt install lazynet
-```
-
-Estos comandos hacen tres cosas:
-1. Guardan la llave de firma del repositorio.
-2. Agregan el repositorio. `signed-by` hace que esa llave solo valga para este repositorio.
-3. Instalan lazynet.
-
-A partir de ahí, apt verifica cada actualización con esa llave. El paquete también instala el autocompletado para bash, zsh y fish.
-
-Puedes comprobar que la llave descargada es la correcta:
-
-```sh
-gpg --show-keys /usr/share/keyrings/lazynet.gpg
-# huella: 7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6
-```
-
-Para actualizar o desinstalar:
-
-```sh
-sudo apt update && sudo apt upgrade lazynet
-sudo apt remove lazynet
-sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg   # quita también el repositorio
-```
 
 ### Script de instalación
 
@@ -163,7 +138,8 @@ curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/
 El [script](scripts/install.sh):
 - detecta la arquitectura de tu CPU y descarga el último release;
 - verifica su checksum SHA-256;
-- instala el binario en `/usr/local/bin` (con `sudo` si hace falta) o en `~/.local/bin`.
+- instala el binario en `/usr/local/bin` (con `sudo` si hace falta) o en `~/.local/bin`;
+- si lazynet ya está instalado, lo reemplaza donde está, así que volver a ejecutar el script lo actualiza.
 
 | Variable | Efecto |
 |---|---|
@@ -174,11 +150,26 @@ El [script](scripts/install.sh):
 curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | LAZYNET_VERSION=0.1.0 sh
 ```
 
-Para actualizar, vuelve a ejecutar el script. Para desinstalar, borra el binario: `sudo rm "$(command -v lazynet)"`.
+Para desinstalar, borra el binario: `sudo rm "$(command -v lazynet)"`.
+
+<details>
+<summary><b>¿Instalaste lazynet 0.1.0 desde el repositorio APT?</b></summary>
+
+El repositorio APT se retiró: era difícil de configurar y confuso para la mayoría. Quítalo y luego instala con el script:
+
+```sh
+sudo apt remove lazynet
+sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+Mientras no lo hagas, `apt update` muestra un error para el repositorio antiguo. Tu inventario, backups y ajustes no se ven afectados.
+
+</details>
 
 ### Paquetes .deb y .rpm
 
-Sirven para instalar una versión específica sin agregar un repositorio. El número de versión está en la [página de releases](https://github.com/Camilo-ovalle/lazynet/releases).
+Úsalos si prefieres que tu gestor de paquetes lleve el control de los archivos de lazynet. El número de versión está en la [página de releases](https://github.com/Camilo-ovalle/lazynet/releases).
 
 ```sh
 VERSION=0.1.0
@@ -195,7 +186,7 @@ sudo apt install "./lazynet_${VERSION}_linux_${ARCH}.deb"
 sudo dnf install "$BASE/lazynet_${VERSION}_linux_${ARCH}.rpm"
 ```
 
-Los paquetes instalan el binario en `/usr/bin`, junto con el autocompletado y los archivos de licencia. No agregan un repositorio, así que las actualizaciones son manuales.
+Los paquetes instalan el binario en `/usr/bin`, junto con el autocompletado y los archivos de licencia. `lazynet update` descarga el paquete nuevo y lo instala con `dpkg` o `rpm`.
 
 ### Tarball
 
@@ -253,8 +244,8 @@ lazynet changelog        # qué cambió en cada versión
 ```
 
 `lazynet update` actualiza lazynet de la misma forma en que lo instalaste:
-- script de instalación, tarball o `go install`: reemplaza el binario donde está;
-- paquete `.deb` o `.rpm`, incluido el del repositorio APT: descarga el paquete nuevo y lo instala con `dpkg` o `rpm`.
+- script de instalación, tarball o `go install`: reemplaza el binario donde está, exactamente como volver a ejecutar el script;
+- paquete `.deb` o `.rpm`: descarga el paquete nuevo y lo instala con `dpkg` o `rpm`.
 
 Cada descarga se verifica contra los checksums SHA-256 de la versión antes de usarla. `sudo` pide tu contraseña cuando la ubicación de la instalación requiere root.
 
@@ -488,7 +479,7 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # equipo
 
 </details>
 
-Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. Sus notas salen de [CHANGELOG.md](CHANGELOG.md) (en inglés), que también va embebido en el binario para el aviso "What's new" de la TUI. El workflow de release también publica el repositorio APT firmado en GitHub Pages. La configuración inicial, los pasos para publicar y el funcionamiento del repositorio APT están en [docs/releasing.md](docs/releasing.md) (en inglés).
+Los releases se construyen con [GoReleaser](https://goreleaser.com) al subir un tag `v*`. Sus notas salen de [CHANGELOG.md](CHANGELOG.md) (en inglés), que también va embebido en el binario para el aviso "What's new" de la TUI. Los pasos para publicar y el funcionamiento de las actualizaciones están en [docs/releasing.md](docs/releasing.md) (en inglés).
 
 Por ahora, la contribución más valiosa son reportes de bugs que incluyan la salida `show` de tus equipos, sin datos sensibles. Esas salidas se convierten en fixtures para los tests de los parsers.
 

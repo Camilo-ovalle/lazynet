@@ -29,9 +29,18 @@ each entry to one or two lines. Before tagging `vX.Y.Z`, rename
 
 ### Changed
 
+- The install script is the recommended way to install lazynet. Running it
+  again updates lazynet where it is, or does nothing if it is up to date.
 - The terminal UI uses the brand palette, a full-width status bar and a
   two-column help screen.
 - The terminal UI only offers the features the selected device supports.
+
+### Removed
+
+- The APT repository. If you installed from it, remove its source with
+  `sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg`,
+  or `apt update` keeps reporting an error for it. `lazynet update` keeps
+  working for your installed package.
 
 ### Fixed
 

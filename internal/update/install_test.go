@@ -274,27 +274,43 @@ func TestInstallPackages(t *testing.T) {
 		"lazynet_0.3.0_linux_amd64.deb": deb,
 		"lazynet_0.3.0_linux_amd64.rpm": rpm,
 	})
+	dir := t.TempDir()
+	write := func(name, content string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	list := write("lazynet.list", "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.github.io/lazynet stable main\n")
+	commented := write("old.list", "# deb https://camilo-ovalle.github.io/lazynet stable main\n")
+	other := write("other.list", "deb http://deb.debian.org/debian trixie main\n")
 
 	cases := []struct {
 		name    string
 		owner   string // which package database owns /usr/bin/lazynet
+		sources []string
 		root    bool
 		reports string // `lazynet version` after the update
 		method  Method
 		want    []string
 		err     string
+		hint    bool // the retired APT source must be pointed out
 	}{
-		{"deb", "dpkg", false, "0.3.0", MethodDeb, []string{"sudo dpkg -i lazynet_0.3.0_linux_amd64.deb"}, ""},
-		{"deb as root", "dpkg", true, "0.3.0", MethodDeb, []string{"dpkg -i lazynet_0.3.0_linux_amd64.deb"}, ""},
-		{"rpm", "rpm", false, "0.3.0", MethodRPM, []string{"sudo rpm -U lazynet_0.3.0_linux_amd64.rpm"}, ""},
-		{"package not upgraded", "rpm", false, "0.2.0", MethodRPM, nil, "instead of lazynet 0.3.0"},
+		{"deb", "dpkg", []string{commented, other}, false, "0.3.0", MethodDeb, []string{"sudo dpkg -i lazynet_0.3.0_linux_amd64.deb"}, "", false},
+		{"deb as root", "dpkg", nil, true, "0.3.0", MethodDeb, []string{"dpkg -i lazynet_0.3.0_linux_amd64.deb"}, "", false},
+		// Installed from the APT repository of 0.1.0: updated as a .deb, and
+		// told to remove the source that no longer exists.
+		{"deb from the retired APT repository", "dpkg", []string{other, list}, false, "0.3.0", MethodDeb, []string{"sudo dpkg -i lazynet_0.3.0_linux_amd64.deb"}, "", true},
+		{"rpm", "rpm", nil, false, "0.3.0", MethodRPM, []string{"sudo rpm -U lazynet_0.3.0_linux_amd64.rpm"}, "", false},
+		{"package not upgraded", "rpm", nil, false, "0.2.0", MethodRPM, nil, "instead of lazynet 0.3.0", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var ran []string
 			out := &bytes.Buffer{}
 			in := &Installer{
-				Client: srv.client(), Exe: PackagePath, Out: out, Arch: "amd64", Root: c.root,
+				Client: srv.client(), Exe: PackagePath, Out: out, Arch: "amd64", Root: c.root, Sources: c.sources,
 				LookPath: func(string) (string, error) { return "/usr/bin/sudo", nil },
 				Run: func(name string, args ...string) error {
 					if n := len(args); n > 0 && (strings.HasSuffix(args[n-1], ".deb") || strings.HasSuffix(args[n-1], ".rpm")) {
@@ -335,6 +351,9 @@ func TestInstallPackages(t *testing.T) {
 			}
 			if strings.Join(ran, "\n") != strings.Join(c.want, "\n") {
 				t.Fatalf("commands:\n%s\nwant:\n%s", strings.Join(ran, "\n"), strings.Join(c.want, "\n"))
+			}
+			if hint := strings.Contains(out.String(), "sudo rm "+list+" /usr/share/keyrings/lazynet.gpg"); hint != c.hint {
+				t.Fatalf("retired APT hint = %v, want %v:\n%s", hint, c.hint, out)
 			}
 		})
 	}

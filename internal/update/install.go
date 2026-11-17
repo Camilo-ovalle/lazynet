@@ -42,6 +42,11 @@ func (m Method) String() string {
 // PackagePath is where the .deb and .rpm packages install the binary.
 const PackagePath = "/usr/bin/lazynet"
 
+// retiredAPTRepo identifies the APT repository that lazynet 0.1.0 offered
+// and that no longer exists. A source still pointing at it makes
+// `apt update` fail, so `lazynet update` explains how to remove it.
+const retiredAPTRepo = "camilo-ovalle.github.io/lazynet"
+
 // Limits for what is downloaded (the real files are a few MB).
 const (
 	maxPackage   = 256 << 20
@@ -61,7 +66,8 @@ type Installer struct {
 	Run      func(name string, args ...string) error // interactive: stdio attached (sudo may ask for a password)
 	Output   func(name string, args ...string) (string, error)
 	LookPath func(string) (string, error)
-	Root     bool // running as root: no sudo
+	Root     bool     // running as root: no sudo
+	Sources  []string // APT source files that may still list the retired repository
 }
 
 // NewInstaller returns an installer for the running binary.
@@ -76,6 +82,7 @@ func NewInstaller(c Client, out io.Writer) (*Installer, error) {
 	if r, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = r
 	}
+	sources, _ := filepath.Glob("/etc/apt/sources.list.d/*")
 	return &Installer{
 		Client: c, Exe: exe, Out: out, Arch: runtime.GOARCH,
 		Run: func(name string, args ...string) error {
@@ -89,11 +96,11 @@ func NewInstaller(c Client, out io.Writer) (*Installer, error) {
 		},
 		LookPath: exec.LookPath,
 		Root:     os.Geteuid() == 0,
+		Sources:  append([]string{"/etc/apt/sources.list"}, sources...),
 	}, nil
 }
 
-// Method detects how the running binary was installed. Packages (including
-// the .deb from the APT repository) install
+// Method detects how the running binary was installed. Packages install
 // /usr/bin/lazynet, which the install script and go install never use, and
 // the package database confirms the owner.
 func (in *Installer) Method() Method {
@@ -107,6 +114,24 @@ func (in *Installer) Method() Method {
 		return MethodRPM
 	}
 	return MethodBinary
+}
+
+// retiredAPTSource returns the APT source file that still lists the retired
+// lazynet repository, if any.
+func (in *Installer) retiredAPTSource() string {
+	for _, f := range in.Sources {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		for _, l := range strings.Split(string(b), "\n") {
+			l = strings.TrimSpace(l)
+			if !strings.HasPrefix(l, "#") && strings.Contains(l, retiredAPTRepo) {
+				return f
+			}
+		}
+	}
+	return ""
 }
 
 // Install installs rel and checks that the binary now reports it.
@@ -134,6 +159,13 @@ func (in *Installer) Install(ctx context.Context, rel Release) error {
 	}
 	if !strings.HasPrefix(got, "lazynet "+rel.Version+" ") {
 		return fmt.Errorf("after the update, the binary reports %q instead of lazynet %s", strings.TrimSpace(got), rel.Version)
+	}
+	if m == MethodDeb {
+		if src := in.retiredAPTSource(); src != "" {
+			fmt.Fprintf(in.Out, "\nNote: the lazynet APT repository was retired, and %s still lists it,\n"+
+				"so 'apt update' reports an error for it. Remove it with:\n"+
+				"  sudo rm %s /usr/share/keyrings/lazynet.gpg\n", src, src)
+		}
 	}
 	return nil
 }

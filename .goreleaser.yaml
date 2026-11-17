@@ -1,5 +1,6 @@
 # GoReleaser v2 — builds static binaries, tarballs, .deb/.rpm packages and
-# the GitHub release. The APT repository is published by release.yml.
+# the GitHub release. The install script and `lazynet update` download from it,
+# so keep the archive, package and checksums.txt names stable.
 version: 2
 project_name: lazynet
 

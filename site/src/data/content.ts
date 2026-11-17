@@ -5,7 +5,6 @@
 // (emulated devices). Refresh them when the CLI output changes.
 
 export const repo = "https://github.com/Camilo-ovalle/lazynet";
-export const pagesUrl = "https://camilo-ovalle.github.io/lazynet";
 
 export interface CommandTab {
   id: string;
@@ -118,17 +117,9 @@ export interface InstallTab {
 
 export const installs: InstallTab[] = [
   {
-    id: "apt",
-    label: "APT",
-    note: "Debian, Ubuntu and derivatives. Signed repository; updates arrive with apt upgrade.",
-    code: `curl -fsSL ${pagesUrl}/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] ${pagesUrl} stable main" | sudo tee /etc/apt/sources.list.d/lazynet.list
-sudo apt update && sudo apt install lazynet`,
-  },
-  {
     id: "script",
     label: "Script",
-    note: "Any Linux distribution. Downloads the latest release, verifies its SHA-256 and installs it.",
+    note: "Any Linux distribution. Downloads the latest release, verifies its SHA-256 and installs it. Run it again to update.",
     code: `curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh`,
   },
   {

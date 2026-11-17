@@ -1,10 +1,5 @@
-# Builds and deploys https://camilo-ovalle.github.io/lazynet
-#
-# One GitHub Pages site serves two things:
-#   - the landing page (Astro, site/), with terminal recordings made by VHS;
-#   - the APT repository (dists/, pool/, lazynet.gpg). release.yml publishes it
-#     to the gh-pages branch, which is only used as storage now.
-# This workflow merges both into one artifact and deploys it.
+# Builds and deploys the landing page, https://camilo-ovalle.github.io/lazynet
+# (Astro, site/), with terminal recordings made by VHS.
 # It requires Settings > Pages > Source: "GitHub Actions".
 name: pages
 on:
@@ -14,7 +9,7 @@ on:
       - "site/**"
       - "assets/**"
       - ".github/workflows/pages.yml"
-  workflow_dispatch: # also dispatched by release.yml after a new APT publication
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,7 +34,7 @@ jobs:
           CGO_ENABLED=0 go build -o "$HOME/.local/bin/lazynet" ./cmd/lazynet
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       # Recordings are optional: if VHS fails, the site falls back to the
-      # static mockups instead of blocking the deploy (and the APT repository).
+      # static mockups instead of blocking the deploy.
       - name: Install VHS
         id: vhs
         continue-on-error: true
@@ -61,28 +56,6 @@ jobs:
       - name: Build the site
         working-directory: site
         run: npm ci && npm run build
-      - name: Add the APT repository from gh-pages
-        run: |
-          set +e
-          git ls-remote --exit-code --heads origin gh-pages >/dev/null
-          rc=$?
-          set -e
-          case $rc in
-            0) git fetch --depth 1 origin gh-pages
-               # --skip-old-files: the site wins if a path ever collides.
-               git archive FETCH_HEAD | tar -x -C site/dist --skip-old-files ;;
-            2) echo "No gh-pages branch yet: deploying the site without the APT repository." ;;
-            *) echo "could not query gh-pages (exit $rc)"; exit "$rc" ;;
-          esac
-          ls site/dist
-      - name: Check the APT repository survived the merge
-        run: |
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
-            for f in lazynet.gpg dists/stable/InRelease dists/stable/Release; do
-              test -s "site/dist/$f" || { echo "missing $f"; exit 1; }
-            done
-            gpgv --keyring site/dist/lazynet.gpg site/dist/dists/stable/InRelease
-          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/dist

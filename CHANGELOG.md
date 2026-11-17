@@ -7,46 +7,44 @@ workflow also publishes the section of each tag as its GitHub release notes.
 
 Write entries for users: what they can do now, or what works better. Group
 them under `### Added`, `### Changed`, `### Removed`, `### Fixed` or
-`### Security`, and keep
-each entry to one or two lines. Before tagging `vX.Y.Z`, rename
-`## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` and start a new empty
-`## [Unreleased]` section above it (see `docs/releasing.md`).
+`### Security`, and keep each entry to one or two lines. Before tagging
+`vX.Y.Z`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` and start a
+new empty `## [Unreleased]` section above it (see `docs/releasing.md`).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 ### Added
 
-- `lazynet update` updates lazynet to the latest release, the same way it was
-  installed: it replaces the binary installed by the install script, or
-  upgrades the `.deb` or `.rpm` package. `--check` only reports whether a
-  newer version exists.
-- The terminal UI tells you when a new release is out: update now, skip that
-  version, or decide later. After updating, it shows what changed.
-- `lazynet changelog` prints the release notes of every version.
-- `check_updates: false` in `config.yml` stops lazynet from contacting GitHub.
-- Palo Alto firewalls (PAN-OS): device info and XML configuration backups.
-- The inventory accepts `paloalto` (or `panos`) as a platform.
+- Palo Alto firewalls (PAN-OS, HA pairs too): device info and XML
+  configuration backups. Platform name `paloalto` (or `panos`).
+- `lazynet update` installs the latest release the same way lazynet was
+  installed, after checking its checksum. `--check` only looks.
+- The terminal UI announces new releases: `u` update, `s` skip that
+  version, `esc` later. After updating, it shows what changed.
+- `lazynet changelog` prints the release notes.
+- `check_updates: false` in `config.yml` for networks without internet.
 
 ### Changed
 
-- The install script is the recommended way to install lazynet. Running it
-  again updates lazynet where it is, or does nothing if it is up to date.
-- The terminal UI uses the brand palette, a full-width status bar and a
-  two-column help screen.
-- The terminal UI only offers the features the selected device supports.
+- The install script is the recommended install method. Run it again to
+  update.
+- Only supported features are offered per device: no VLAN changes on Nexus
+  and ASA.
+- New colours, a full-width status bar and a two-column help screen.
+- Tested against the Catalyst C9200L-48P-4X on IOS XE 17.12.
 
 ### Removed
 
-- The APT repository. If you installed from it, remove its source with
-  `sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg`,
-  or `apt update` keeps reporting an error for it. `lazynet update` keeps
-  working for your installed package.
+- The APT repository. If you used it, run
+  `sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg`.
 
 ### Fixed
 
-- Typing in a prefilled field replaces its value instead of appending to it.
-- The device information stays visible after a VLAN change, and the port is
-  read again from the device.
+- Changing a port's VLAN after querying another port failed with "invalid
+  interface number". Prefilled fields are now replaced when you type.
+- After a VLAN change, the Info tab no longer resets to "enter connect".
 
 ## [0.1.0] - 2026-11-16
 

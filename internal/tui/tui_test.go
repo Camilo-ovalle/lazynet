@@ -5,7 +5,9 @@ package tui
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/Camilo-ovalle/lazynet/internal/app"
 	"github.com/Camilo-ovalle/lazynet/internal/audit"
+	"github.com/Camilo-ovalle/lazynet/internal/update"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
@@ -104,7 +107,7 @@ func newHarness(t *testing.T) (*harness, *app.App) {
 		t.Fatal(err)
 	}
 	t.Cleanup(stop)
-	h := &harness{t: t, m: newModel(a, &env{})}
+	h := &harness{t: t, m: newModel(a, &env{}, Options{})}
 	h.send(tea.WindowSizeMsg{Width: 130, Height: 38})
 	return h, a
 }
@@ -341,5 +344,171 @@ func TestTUICapabilities(t *testing.T) {
 	h.expect("Palo Alto: interface details not supported yet")
 	if h.m.(model).modal != nil {
 		t.Fatal("no interface prompt must open on a Palo Alto")
+	}
+}
+
+type fakeUpdates struct {
+	notes   []update.Note
+	avail   update.Available
+	skipped string
+	checks  int
+}
+
+func (f *fakeUpdates) WhatsNew() []update.Note {
+	n := f.notes
+	f.notes = nil
+	return n
+}
+
+func (f *fakeUpdates) Check(context.Context) (update.Available, error) {
+	f.checks++
+	return f.avail, nil
+}
+
+func (f *fakeUpdates) Skip(v string) error { f.skipped = v; return nil }
+
+func newUpdateHarness(t *testing.T, f *fakeUpdates) (*harness, *env) {
+	a, stop, err := app.StartDemo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
+	e := &env{}
+	h := &harness{t: t, m: newModel(a, e, Options{Updates: f})}
+	h.send(tea.WindowSizeMsg{Width: 130, Height: 38})
+	return h, e
+}
+
+// init runs the model's startup commands, as Bubble Tea does.
+func (h *harness) init() {
+	h.t.Helper()
+	for _, msg := range run(h.m.Init()) {
+		h.send(msg)
+	}
+}
+
+var available = update.Available{Current: "0.2.0", Version: "0.3.0", URL: "https://github.com/Camilo-ovalle/lazynet/releases/tag/v0.3.0"}
+
+func TestTUIWhatsNew(t *testing.T) {
+	f := &fakeUpdates{notes: []update.Note{
+		{Version: "0.3.0", Date: "2026-12-01", Body: "### Added\n\n- `lazynet update` installs\n  new releases."},
+		{Version: "0.2.0", Date: "2026-11-20", Body: "### Fixed\n\n- Faster backups."},
+	}}
+	h, _ := newUpdateHarness(t, f)
+	h.expect("What's new in lazynet 0.3.0", "0.3.0  2026-12-01", "Added", "• lazynet update installs new releases.",
+		"0.2.0  2026-11-20", "• Faster backups.", "all releases: lazynet changelog")
+	h.key("x")
+	if strings.Contains(h.screen(), "What's new") {
+		t.Fatal("the release notes should close on any key")
+	}
+	h.init() // nothing newer: no banner
+	if f.checks != 1 || h.m.(model).modal != nil {
+		t.Fatalf("checks = %d, modal = %v", f.checks, h.m.(model).modal)
+	}
+	if os.Getenv("LAZYNET_SNAPSHOT") != "" {
+		t.Log("\n" + h.screen())
+	}
+}
+
+// Long notes are cut to fit the terminal instead of overflowing it.
+func TestTUIWhatsNewFitsTheScreen(t *testing.T) {
+	body := "### Added\n"
+	for i := range 60 {
+		body += fmt.Sprintf("\n- Item number %d with enough words to need wrapping inside the dialog box.", i)
+	}
+	h, _ := newUpdateHarness(t, &fakeUpdates{notes: []update.Note{{Version: "0.3.0", Body: body}}})
+	h.send(tea.WindowSizeMsg{Width: 80, Height: 24})
+	h.expect("What's new in lazynet 0.3.0", "Item number 0", "… more in 'lazynet changelog'", "press any key")
+	if lines := strings.Split(h.screen(), "\n"); !strings.HasPrefix(lines[0], "╭─ Devices") {
+		t.Fatalf("the dialog must leave the frame visible:\n%s", h.screen())
+	}
+	if n := len(strings.Split(h.screen(), "\n")); n != 24 {
+		t.Fatalf("screen has %d lines", n)
+	}
+}
+
+func TestTUIUpdateBanner(t *testing.T) {
+	t.Run("skip", func(t *testing.T) {
+		f := &fakeUpdates{avail: available}
+		h, e := newUpdateHarness(t, f)
+		h.init()
+		h.expect("Update available", "lazynet 0.3.0 is available. You have 0.2.0.", "releases/tag/v0.3.0",
+			"[u] update now", "[s] skip this version", "[esc] later")
+		h.key("enter") // Enter chooses nothing
+		h.expect("Update available")
+		h.key("s")
+		if f.skipped != "0.3.0" || e.updateTo != "" || h.m.(model).modal != nil {
+			t.Fatalf("skipped = %q, updateTo = %q", f.skipped, e.updateTo)
+		}
+		if !strings.Contains(h.status(), "Skipped lazynet 0.3.0") {
+			t.Fatalf("status: %q", h.status())
+		}
+	})
+	t.Run("later", func(t *testing.T) {
+		f := &fakeUpdates{avail: available}
+		h, e := newUpdateHarness(t, f)
+		h.init()
+		h.key("esc")
+		if f.skipped != "" || e.updateTo != "" || !strings.Contains(h.status(), "run 'lazynet update'") {
+			t.Fatalf("skipped = %q, updateTo = %q, status %q", f.skipped, e.updateTo, h.status())
+		}
+	})
+	t.Run("update", func(t *testing.T) {
+		h, e := newUpdateHarness(t, &fakeUpdates{avail: available})
+		h.init()
+		var cmd tea.Cmd
+		h.m, cmd = h.m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
+		if e.updateTo != "0.3.0" {
+			t.Fatalf("updateTo = %q", e.updateTo)
+		}
+		if _, ok := cmd().(tea.QuitMsg); !ok {
+			t.Fatal("choosing update must close the UI so the update runs in the terminal")
+		}
+	})
+	t.Run("after the release notes", func(t *testing.T) {
+		h, _ := newUpdateHarness(t, &fakeUpdates{avail: available, notes: []update.Note{{Version: "0.2.0", Body: "- two"}}})
+		h.init()
+		h.expect("What's new in lazynet 0.2.0")
+		h.key("x")
+		h.expect("Update available")
+	})
+}
+
+// The banner waits until the user is done: it never covers a dialog or
+// interrupts a VLAN change.
+func TestTUIUpdateBannerWaits(t *testing.T) {
+	h, e := newUpdateHarness(t, &fakeUpdates{})
+	h.key("enter")
+	h.expect("C9300-48P")
+	h.key("v")
+	h.send(updateMsg{avail: available})
+	h.expect("Change access VLAN")
+	h.key("1/0/7")
+	h.key("tab")
+	h.key("20")
+	h.key("enter")
+	h.expect("Confirm configuration change", "switchport access vlan 20")
+	if strings.Contains(h.screen(), "Update available") {
+		t.Fatal("the banner must not cover the change confirmation")
+	}
+	h.key("n")
+	h.expect("Update available")
+	if !strings.Contains(h.status(), "Aborted") {
+		t.Fatalf("status: %q", h.status())
+	}
+	h.key("u")
+	if e.updateTo != "0.3.0" {
+		t.Fatalf("updateTo = %q", e.updateTo)
+	}
+}
+
+func TestTUIWithoutUpdates(t *testing.T) {
+	h, _ := newHarness(t)
+	if h.m.Init() == nil {
+		t.Fatal("Init must still start the spinner")
+	}
+	h.init()
+	if h.m.(model).modal != nil {
+		t.Fatal("no banner without an update checker (demo mode, dev builds)")
 	}
 }

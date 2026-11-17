@@ -12,7 +12,8 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, …) working on lazyn
 
 A Go terminal tool, inspired by lazygit and lazydocker, for operating network devices over SSH (Cisco Catalyst, Nexus and ASA; Palo Alto info and backups):
 - `lazynet` with no arguments opens a Bubble Tea TUI with mouse support;
-- subcommands (`info`, `iface`, `logs`, `backup`, `vlan set`, `inventory`) are for scripting, with `-o json` available.
+- subcommands (`info`, `iface`, `logs`, `backup`, `vlan set`, `inventory`) are for scripting, with `-o json` available;
+- `update` installs the latest release and `changelog` prints the release notes.
 
 It targets Linux first. Windows and PowerShell come later.
 
@@ -47,6 +48,8 @@ CI (`.github/workflows/ci.yml`) runs gofmt, `go vet`, `go test -race`, a static 
 | `internal/parse` | Parsers and types shared by several platforms (interfaces, switchports, VLANs, logs, clocks, MACs) |
 | `internal/mockssh` | SSH server that emulates each platform's CLI (tests, `--demo`, hidden `mock` command). One emulator file per platform (`catalyst.go`, `paloalto.go`, …; Cisco CLIs share `ios.go`); fixtures in `fixtures/<platform>/` |
 | `internal/creds` | Password cache with TTL (Linux kernel keyring) |
+| `internal/update` | Release check (GitHub API, cached daily in `update.json`), `lazynet update` per install method (binary from the install script, `.deb`, `.rpm`), release notes parsed from the embedded `CHANGELOG.md` |
+| `CHANGELOG.md`, `changelog.go` | Release notes, embedded in the binary (root package `lazynet`) for the TUI "What's new" banner and `lazynet changelog`; also the GitHub release notes |
 | `internal/backup` | go-git repository of running-configs, diffs |
 | `internal/audit` | JSONL audit log |
 | `internal/inventory`, `internal/config` | YAML inventory and settings, XDG paths (`LAZYNET_HOME` override) |
@@ -113,6 +116,18 @@ These rules are the point of the project. Do not weaken them, and do not add way
 
 Out of scope for now: restoring backups, a syslog server as a log source, `enable` secret, jump hosts, VLAN changes on Nexus/ASA, Palo Alto interfaces/logs and any change on Palo Alto.
 
+## Release notes (`CHANGELOG.md`)
+
+`CHANGELOG.md` is what users read: the TUI shows it after an update ("What's new"), `lazynet changelog` prints it, and the release workflow publishes each tag's section as the GitHub release notes.
+
+- **Every user-visible change adds an entry under `## [Unreleased]` in the same branch.** Group entries under `### Added`, `### Changed`, `### Removed`, `### Fixed` or `### Security`. Write for a network admin, one or two lines each: what they can do now, not how the code changed. Refactors, tests, CI and docs-only changes need no entry.
+- **When cutting a release**, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` and add a new empty `## [Unreleased]` above it, before tagging (see `docs/releasing.md`). The release workflow fails if the tag has no section (`scripts/release-notes.sh`).
+- Keep the format parseable: versions newest first, `X.Y.Z` only, dates as `YYYY-MM-DD`. `TestEmbeddedChangelog` (`internal/update`) enforces it.
+- `scripts/install.sh` and `lazynet update` download release files by name. Don't rename `lazynet_<version>_linux_<arch>.{tar.gz,deb,rpm}` or `checksums.txt` in `.goreleaser.yaml`. Both refuse downloads whose SHA-256 is not in `checksums.txt`; never add a way to skip that check.
+- The install script is the primary install method, and it also updates: it reuses the directory of a lazynet already in `PATH` (except the packages' `/usr/bin/lazynet`). `lazynet update` must keep doing exactly what the script does for a standalone binary (same tarball, same check, same location, `sudo` only when needed). It never downloads and runs the script itself.
+- The update check only runs in release builds (`X.Y.Z`), never in `--demo` and never with `check_updates: false`. A failed check stays silent. The banner only opens when no operation, dialog or VLAN change is in progress (`flushNotices`); keep it that way.
+- To try the update flow end to end without GitHub, build two binaries with `-ldflags "-X …/internal/cli.Version=0.1.0 -X …/internal/update.API=http://127.0.0.1:PORT/repo"`, serve a fake `repo/releases/latest` JSON and the release files locally, and use `LAZYNET_HOME` so the real state is untouched. Never run `lazynet update` on the binary you work with.
+
 ## Testing conventions
 
 - Device behaviour is tested against `internal/mockssh`, which emulates prompts, modes, pipes and stateful ports and VLANs. Platform packages use it through `internal/platform/platformtest`.
@@ -160,13 +175,10 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
 ## Status and open items (as of 2026-11-16)
 
-- **v0.1.0 is released** (2026-11-16). Every install method was verified against it:
-  - the APT repository on GitHub Pages (`https://camilo-ovalle.github.io/lazynet`, suite `stable`, component `main`);
-  - `install.sh`, `go install`, and the .deb, .rpm and tarball downloads.
-
-  The repository signing key fingerprint is `7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6`; the README publishes it.
-  Releases: tag `vX.Y.Z` and push it. If the APT publication fails, rerun it with *Actions → release → Run workflow* and the tag. See `docs/releasing.md`.
-- The landing page (`site/`) and the APT repository share GitHub Pages. `pages.yml` builds the site, records the VHS demos, merges the APT files from `gh-pages` (storage only) and checks that `InRelease` still verifies before deploying. Pages source must be *GitHub Actions*, and the `github-pages` environment must allow deployments from `main`.
+- **v0.1.0 is released** (2026-11-16). Its install methods were verified against it: `install.sh`, `go install`, and the .deb, .rpm and tarball downloads.
+  Releases: tag `vX.Y.Z` and push it; the release notes come from `CHANGELOG.md`. See `docs/releasing.md`.
+- **The APT repository was retired** (after v0.1.0): it was hard to set up and confusing for non-technical users. The install script is the recommended method. `release.yml` no longer publishes it and `pages.yml` no longer serves it. Pending, by the maintainer: delete the `gh-pages` branch and the `APT_GPG_*` secrets once the site is redeployed. Don't bring APT back without asking.
+- GitHub Pages only serves the landing page (`site/`), built and deployed by `pages.yml` with the VHS demos. Pages source must be *GitHub Actions*, and the `github-pages` environment must allow deployments from `main`.
 - Licensed under Apache-2.0, copyright Camilo Enrique Ovalle Ceron (`LICENSE`, `NOTICE`). The repository was renamed from `Lazy_Net` to `lazynet`; the module path is `github.com/Camilo-ovalle/lazynet`.
 - The repository is public.
 - Target Catalyst in production: **C9200L-48P-4X on IOS XE 17.12.04** (ARM64, CAT9K_LITE_IOSXE; ports Gi1/0/1-48 and uplinks Te1/1/1-4). A synthetic `show version` fixture covers it (`internal/platforms/cisco/catalyst/testdata/`); replace it with a sanitized real capture when available. No tests on real devices yet.
@@ -176,3 +188,4 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
   - The maintainer's Cisco account was on compliance hold, waiting to download CML.
 - The platform code was split into per-platform modules (`internal/platforms/…`) with a registry, capability interfaces and a separate detector. User-visible behaviour is unchanged, except that the inventory now accepts `paloalto`/`panos` and the TUI only offers features the platform supports.
 - Palo Alto support has not been tested on real hardware yet.
+- Updates (unreleased, next version): `lazynet update`, `lazynet changelog`, the TUI update banner (update / skip this version / later) and the "What's new" banner, fed by `CHANGELOG.md`. Tested end to end against a local fake release server (binary method and TUI relaunch); the `.deb` and `.rpm` methods are covered by unit tests only, and no release has gone through it yet. The install script's install, rerun and in-place update were tested locally and run in CI (`packaging`). v0.1.0 has no update check, so its users must update once by hand (run the install script; APT users follow the README note); from the next release on, `lazynet update` works.

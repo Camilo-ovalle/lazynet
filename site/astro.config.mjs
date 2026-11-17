@@ -3,8 +3,7 @@
 
 import { defineConfig } from "astro/config";
 
-// The site is served from GitHub Pages as a project page, next to the APT
-// repository (dists/, pool/, lazynet.gpg), which the pages workflow merges in.
+// The site is served from GitHub Pages as a project page.
 export default defineConfig({
   site: "https://camilo-ovalle.github.io",
   base: "/lazynet",

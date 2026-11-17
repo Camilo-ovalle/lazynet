@@ -7,6 +7,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/Camilo-ovalle/lazynet/internal/inventory"
 	"github.com/Camilo-ovalle/lazynet/internal/parse"
 	"github.com/Camilo-ovalle/lazynet/internal/platform"
+	"github.com/Camilo-ovalle/lazynet/internal/update"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -94,7 +96,10 @@ type model struct {
 
 	modal   *modal
 	prompts []promptMsg // background prompts waiting for the current modal
+	notices []*modal    // banners waiting for an idle moment (see flushNotices)
 	pending *pendingVlan
+
+	updates Updates
 }
 
 // pendingVlan tracks the VLAN change workflow between modals.
@@ -107,27 +112,59 @@ type pendingVlan struct {
 	shown []string
 }
 
+// Updates is what the TUI needs to announce lazynet releases
+// (*update.Checker implements it). Nil disables the banners.
+type Updates interface {
+	// WhatsNew returns the release notes not shown yet and marks them seen.
+	WhatsNew() []update.Note
+	// Check reports a newer release, if any (zero value otherwise).
+	Check(ctx context.Context) (update.Available, error)
+	// Skip stops offering a version.
+	Skip(version string) error
+}
+
+// Options configures the TUI.
+type Options struct {
+	Updates Updates
+}
+
+// Result tells the caller what to do after the TUI closed.
+type Result struct {
+	// UpdateTo is set when the user chose to update lazynet: the caller
+	// installs the release in the terminal and starts the new binary.
+	UpdateTo string
+}
+
+// updateCheckTimeout bounds the background release check. It never delays
+// the UI: the banner simply doesn't appear if GitHub is slow or unreachable.
+const updateCheckTimeout = 5 * time.Second
+
 // Run starts the TUI and blocks until the user quits.
-func Run(a *app.App) error {
+func Run(a *app.App, opts Options) (Result, error) {
 	e := &env{}
-	m := newModel(a, e)
+	m := newModel(a, e, opts)
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	e.program = p
 	_, err := p.Run()
-	return err
+	return Result{UpdateTo: e.updateTo}, err
 }
 
-func newModel(a *app.App, e *env) model {
+func newModel(a *app.App, e *env, opts Options) model {
 	sp := spinner.New(spinner.WithSpinner(spinner.MiniDot))
 	m := model{
 		app: a, env: e, states: map[string]*devState{}, platforms: a.DetectedPlatforms(),
-		spin: sp, vp: viewport.New(0, 0), logView: logView{maxSev: 7},
+		spin: sp, vp: viewport.New(0, 0), logView: logView{maxSev: 7}, updates: opts.Updates,
 	}
 	m.buildRows()
 	if len(a.Inv.Devices) == 0 {
 		m.setStatus("Inventory is empty: press 'a' to connect to an IP, or create "+a.Paths.Inventory, false)
 	} else {
 		m.setStatus("Select a device and press Enter to connect · ? for help", false)
+	}
+	if m.updates != nil {
+		if notes := m.updates.WhatsNew(); len(notes) > 0 {
+			m.queueNotice(newWhatsNew(notes))
+		}
 	}
 	return m
 }
@@ -201,7 +238,26 @@ func (m *model) moveCursor(delta int) {
 	}
 }
 
-func (m model) Init() tea.Cmd { return m.spin.Tick }
+func (m model) Init() tea.Cmd { return tea.Batch(m.spin.Tick, m.checkUpdates()) }
+
+// updateMsg carries the result of the background release check.
+type updateMsg struct {
+	avail update.Available
+	err   error
+}
+
+func (m model) checkUpdates() tea.Cmd {
+	u := m.updates
+	if u == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), updateCheckTimeout)
+		defer cancel()
+		av, err := u.Check(ctx)
+		return updateMsg{av, err}
+	}
+}
 
 // start marks a tab as loading and returns the command with busy accounting.
 func (m *model) start(label string, t tab, cmd tea.Cmd) tea.Cmd {

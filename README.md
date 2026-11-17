@@ -90,44 +90,19 @@ lazynet runs on **Linux** (amd64 and arm64). Windows and PowerShell support is o
 
 lazynet is a single static binary with no runtime dependencies. Releases are published for **Linux amd64 and arm64**.
 
+```sh
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+That's all most people need. To update later, run `lazynet update`.
+
 | Method | Best for | How you update |
 |---|---|---|
-| [APT repository](#apt-debian-ubuntu) (recommended) | Debian, Ubuntu and derivatives | `sudo apt upgrade` |
-| [Install script](#install-script) | Any Linux distribution | Run the script again |
-| [.deb / .rpm package](#deb-and-rpm-packages) | One-off installs, Fedora, RHEL | Install the newer package |
-| [Tarball](#tarball) | Manual or offline installs | Replace the binary |
-| [go install](#go-install) | Go developers | Run it again with `@latest` |
+| [Install script](#install-script) (recommended) | Any Linux distribution | `lazynet update`, or run the script again |
+| [.deb / .rpm package](#deb-and-rpm-packages) | Package-managed hosts | `lazynet update` |
+| [Tarball](#tarball) | Manual or offline installs | `lazynet update`, or replace the binary |
+| [go install](#go-install) | Go developers | `lazynet update`, or `go install …@latest` |
 | [From source](#build-from-source) | Contributors | `git pull && make build` |
-
-### APT (Debian, Ubuntu)
-
-```sh
-curl -fsSL https://camilo-ovalle.github.io/lazynet/lazynet.gpg | sudo tee /usr/share/keyrings/lazynet.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/lazynet.gpg] https://camilo-ovalle.github.io/lazynet stable main" | sudo tee /etc/apt/sources.list.d/lazynet.list
-sudo apt update && sudo apt install lazynet
-```
-
-These commands do three things:
-1. Save the repository's signing key.
-2. Add the repository. `signed-by` makes that key valid only for this repository.
-3. Install lazynet.
-
-From then on, apt verifies every update against that key. The packages also install shell completions for bash, zsh and fish.
-
-You can check that the key you downloaded is the right one:
-
-```sh
-gpg --show-keys /usr/share/keyrings/lazynet.gpg
-# fingerprint: 7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6
-```
-
-Upgrade, or uninstall:
-
-```sh
-sudo apt update && sudo apt upgrade lazynet
-sudo apt remove lazynet
-sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg   # also remove the repository
-```
 
 ### Install script
 
@@ -140,7 +115,8 @@ curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/
 The [script](scripts/install.sh):
 - detects your CPU architecture and downloads the latest release;
 - verifies its SHA-256 checksum;
-- installs the binary into `/usr/local/bin` (using `sudo` if needed) or into `~/.local/bin`.
+- installs the binary into `/usr/local/bin` (using `sudo` if needed) or into `~/.local/bin`;
+- if lazynet is already installed, replaces it where it is, so running the script again updates it.
 
 | Variable | Effect |
 |---|---|
@@ -151,11 +127,26 @@ The [script](scripts/install.sh):
 curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | LAZYNET_VERSION=0.1.0 sh
 ```
 
-To upgrade, run the script again. To uninstall, delete the binary: `sudo rm "$(command -v lazynet)"`.
+To uninstall, delete the binary: `sudo rm "$(command -v lazynet)"`.
+
+<details>
+<summary><b>Installed lazynet 0.1.0 from the APT repository?</b></summary>
+
+The APT repository was retired: it was hard to set up and confusing for most users. Remove it, then install with the script:
+
+```sh
+sudo apt remove lazynet
+sudo rm /etc/apt/sources.list.d/lazynet.list /usr/share/keyrings/lazynet.gpg
+curl -fsSL https://raw.githubusercontent.com/Camilo-ovalle/lazynet/main/scripts/install.sh | sh
+```
+
+Until you do, `apt update` reports an error for the old repository. Your inventory, backups and settings are not affected.
+
+</details>
 
 ### .deb and .rpm packages
 
-Use these to install a specific version without adding a repository. Find the version number on the [releases page](https://github.com/Camilo-ovalle/lazynet/releases).
+Use these if you prefer your package manager to track lazynet's files. Find the version number on the [releases page](https://github.com/Camilo-ovalle/lazynet/releases).
 
 ```sh
 VERSION=0.1.0
@@ -172,7 +163,7 @@ sudo apt install "./lazynet_${VERSION}_linux_${ARCH}.deb"
 sudo dnf install "$BASE/lazynet_${VERSION}_linux_${ARCH}.rpm"
 ```
 
-The packages install the binary into `/usr/bin`, along with shell completions and the license files. They don't add a repository, so updates are manual.
+The packages install the binary into `/usr/bin`, along with shell completions and the license files. `lazynet update` downloads the newer package and installs it with `dpkg` or `rpm`.
 
 ### Tarball
 
@@ -221,6 +212,22 @@ lazynet version
 lazynet --demo     # try it right away with emulated devices
 ```
 
+### Updating
+
+```sh
+lazynet update           # install the latest release
+lazynet update --check   # only report whether there is one
+lazynet changelog        # what changed in each release
+```
+
+`lazynet update` updates lazynet the same way you installed it:
+- install script, tarball or `go install`: replaces the binary where it is, exactly like running the install script again;
+- `.deb` or `.rpm` package: downloads the new package and installs it with `dpkg` or `rpm`.
+
+Every download is checked against the release's SHA-256 checksums before it is used. `sudo` asks for your password when the install location needs root.
+
+The TUI checks GitHub at most once a day and tells you when a new release is out. Press `u` to update (lazynet closes, updates and opens again), `s` to skip that version, or `esc` to decide later. The banner waits until no operation or confirmation is in progress. After an update, the TUI shows what changed. On networks without internet access, set `check_updates: false` in `config.yml`. Demo mode never checks.
+
 ## Quick start
 
 **1. Try it without a network.** Demo mode runs emulated Catalyst, Nexus and ASA devices on localhost. It doesn't touch your network, keyring or files.
@@ -267,6 +274,8 @@ lazynet vlan set core-sw1 -p 1/0/7 -v 20      # validated, confirmed, verified, 
 | `backup list \| show \| diff <device>` | Browse and compare backups |
 | `vlan set <device> -p PORT -v VLAN` | Change an access VLAN (Catalyst) |
 | `inventory list \| add \| check \| init \| path` | Manage the inventory |
+| `update [--check]` | Update lazynet to the latest release |
+| `changelog [--since V]` | Release notes of every version |
 | `completion bash \| zsh \| fish` | Shell completion, including device names |
 
 These options work with every command:
@@ -328,6 +337,7 @@ lazynet follows the XDG base directory spec. Set `LAZYNET_HOME` to keep everythi
 | `~/.config/lazynet/known_hosts` | Trusted SSH host keys |
 | `~/.local/share/lazynet/backups/` | Git repository with one folder per device |
 | `~/.local/share/lazynet/audit.log` | Change audit log (JSON lines) |
+| `~/.local/share/lazynet/update.json` | Release notes already shown, skipped version, last update check |
 | `~/.cache/lazynet/detected.json` | Cached platform detection |
 
 <details>
@@ -370,6 +380,7 @@ ssh_timeout: 15s
 command_timeout: 90s
 default_username: ""
 legacy_ssh: true       # also offer older algorithms (CBC, group14-sha1, ssh-rsa) after modern ones
+check_updates: true    # the TUI asks GitHub for new releases, at most once a day
 ```
 
 </details>
@@ -436,12 +447,13 @@ go run ./cmd/lazynet mock --platform catalyst --listen 127.0.0.1:2222   # standa
 | `internal/parse` | Parsers shared by several platforms (interfaces, logs, clocks) |
 | `internal/mockssh` | SSH server that emulates each platform's CLI (tests and demo mode) |
 | `internal/backup`, `internal/audit`, `internal/creds` | Git backups, audit log, credential cache |
+| `internal/update` | Release check, `lazynet update`, release notes from the embedded `CHANGELOG.md` |
 | `assets/` | Logo, icons and README images ([generator](assets/assets-generator)) |
 | `site/` | Landing page ([camilo-ovalle.github.io/lazynet](https://camilo-ovalle.github.io/lazynet)), built with Astro |
 
 </details>
 
-Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. The release workflow also publishes the signed APT repository to GitHub Pages. See [docs/releasing.md](docs/releasing.md) for the one-time setup, the release steps and how the APT repository works.
+Releases are built with [GoReleaser](https://goreleaser.com) when a `v*` tag is pushed. Their notes come from [CHANGELOG.md](CHANGELOG.md), which is also embedded in the binary for the TUI's "What's new" banner. See [docs/releasing.md](docs/releasing.md) for the release steps and how updates work.
 
 Bug reports with sanitized `show` output from your devices are the most valuable contribution right now. They become parser test fixtures.
 

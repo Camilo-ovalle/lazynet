@@ -28,6 +28,10 @@ type Config struct {
 	// LegacySSH enables old ciphers/kex (CBC, group14-sha1, ssh-rsa) needed by
 	// older IOS 12.x/15.x Catalyst switches. Modern algorithms are still preferred.
 	LegacySSH bool `yaml:"legacy_ssh"`
+	// CheckUpdates lets the terminal UI ask GitHub, at most once a day,
+	// whether a newer lazynet release exists. Set it to false on networks
+	// without internet access. `lazynet update` works either way.
+	CheckUpdates bool `yaml:"check_updates"`
 }
 
 // Default returns the configuration used when no config.yml exists.
@@ -38,6 +42,7 @@ func Default() Config {
 		SSHTimeout:     Duration(15 * time.Second),
 		CommandTimeout: Duration(90 * time.Second),
 		LegacySSH:      true,
+		CheckUpdates:   true,
 	}
 }
 

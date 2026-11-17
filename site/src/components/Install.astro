@@ -11,10 +11,10 @@ import { installs, repo } from "../data/content";
       <h2>One static binary. Pick your way in.</h2>
       <p>
         No Python, no agents, no runtime dependencies. Releases are published for Linux amd64 and
-        arm64, and every download is checksummed or signed.
+        arm64, and every download is checked against its SHA-256 checksum.
       </p>
       <dl class="facts">
-        <div><dt>APT key fingerprint</dt><dd><code>7165 840B 33CF 585D 3786  84A7 935A 8803 6A92 6BB6</code></dd></div>
+        <div><dt>Update</dt><dd><code>lazynet update</code></dd></div>
       </dl>
       <p class="links">
         <a href={`${repo}#installation`}>All install methods</a>{" · "}

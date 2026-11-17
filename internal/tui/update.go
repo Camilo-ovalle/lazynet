@@ -19,6 +19,13 @@ import (
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	next, cmd := m.update(msg)
+	nm := next.(model)
+	nm.flushNotices()
+	return nm, cmd
+}
+
+func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -440,6 +447,12 @@ func (m model) handleResult(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case applyMsg:
 		m.done(msg.dev.Label(), tabIface)
 		return m.onApply(msg)
+	case updateMsg:
+		// A failed check stays silent: offline networks are normal here.
+		if msg.err == nil && msg.avail.Version != "" {
+			m.queueNotice(newUpdateBanner(msg.avail))
+		}
+		return m, nil
 	case saveMsg:
 		m.done(msg.dev.Label(), tabIface)
 		if msg.err != nil {

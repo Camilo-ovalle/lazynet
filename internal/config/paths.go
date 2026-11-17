@@ -15,7 +15,7 @@ const appName = "lazynet"
 // Paths holds every location lazynet reads from or writes to.
 type Paths struct {
 	ConfigDir  string // config.yml, inventory.yml, known_hosts
-	DataDir    string // backups/, audit.log
+	DataDir    string // backups/, audit.log, update.json
 	CacheDir   string // detection cache
 	Config     string
 	Inventory  string
@@ -23,6 +23,9 @@ type Paths struct {
 	Backups    string
 	AuditLog   string
 	Detect     string
+	// UpdateState remembers the release notes already shown, a skipped
+	// version and the last update check.
+	UpdateState string
 }
 
 // DefaultPaths follows the XDG base directory spec on Linux and the native
@@ -54,15 +57,16 @@ func PathsUnder(root string) Paths {
 
 func build(cfg, data, cache string) Paths {
 	return Paths{
-		ConfigDir:  cfg,
-		DataDir:    data,
-		CacheDir:   cache,
-		Config:     filepath.Join(cfg, "config.yml"),
-		Inventory:  filepath.Join(cfg, "inventory.yml"),
-		KnownHosts: filepath.Join(cfg, "known_hosts"),
-		Backups:    filepath.Join(data, "backups"),
-		AuditLog:   filepath.Join(data, "audit.log"),
-		Detect:     filepath.Join(cache, "detected.json"),
+		ConfigDir:   cfg,
+		DataDir:     data,
+		CacheDir:    cache,
+		Config:      filepath.Join(cfg, "config.yml"),
+		Inventory:   filepath.Join(cfg, "inventory.yml"),
+		KnownHosts:  filepath.Join(cfg, "known_hosts"),
+		Backups:     filepath.Join(data, "backups"),
+		AuditLog:    filepath.Join(data, "audit.log"),
+		Detect:      filepath.Join(cache, "detected.json"),
+		UpdateState: filepath.Join(data, "update.json"),
 	}
 }
 

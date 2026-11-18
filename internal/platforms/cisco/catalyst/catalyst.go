@@ -73,12 +73,11 @@ func (d *driver) Interface(name string) (platform.InterfaceDetail, error) {
 	}
 	if out, err := d.s.Show("show interfaces " + det.Name + " switchport"); err == nil {
 		if sp, ok := parse.ParseSwitchport(out); ok {
+			// The configured mode, as the device reports it: a dynamic
+			// port is shown as such, never as a trunk it isn't.
 			det.Switchport = &sp
 			det.AccessVlan = sp.AccessVlan
-			det.Mode = "access"
-			if sp.IsTrunk() {
-				det.Mode = "trunk"
-			}
+			det.Mode = sp.Mode()
 		}
 	} else if det.Mode == "" {
 		det.Mode = "routed"

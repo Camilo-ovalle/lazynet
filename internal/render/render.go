@@ -74,11 +74,21 @@ func Interface(d platform.InterfaceDetail) string {
 	if d.Reason != "" {
 		status += theme.Dim.Render(" (" + d.Reason + ")")
 	}
-	vlan := ""
-	if d.Switchport != nil && d.Mode == "access" {
-		vlan = strconv.Itoa(d.AccessVlan)
-		if d.Switchport.VlanName != "" {
-			vlan += theme.Dim.Render(" " + d.Switchport.VlanName)
+	mode, vlan := d.Mode, ""
+	if sp := d.Switchport; sp != nil {
+		// Show both modes when they differ: a "dynamic auto" port can be
+		// down, running as an access port, or a negotiated trunk.
+		if sp.OperMode != "" && !strings.EqualFold(sp.OperMode, sp.AdminMode) {
+			mode += theme.Dim.Render(" · operational: " + strings.ToLower(sp.OperMode))
+		}
+		if !sp.ConfiguredTrunk() {
+			vlan = strconv.Itoa(d.AccessVlan)
+			if sp.VlanName != "" {
+				vlan += theme.Dim.Render(" " + sp.VlanName)
+			}
+			if sp.OperatingTrunk() {
+				vlan += theme.Dim.Render(" (not in use: operating as a trunk)")
+			}
 		}
 	}
 	errs := fmt.Sprintf("in %d · crc %d · out %d", d.InputErrors, d.CRC, d.OutputErrors)
@@ -90,7 +100,7 @@ func Interface(d platform.InterfaceDetail) string {
 		speed += theme.Dim.Render(" " + d.Duplex + "-duplex")
 	}
 	return theme.Title.Render(d.Name) + "\n" + KV([][2]string{
-		{"Status", status}, {"Protocol", d.Protocol}, {"Description", d.Description}, {"Mode", d.Mode},
+		{"Status", status}, {"Protocol", d.Protocol}, {"Description", d.Description}, {"Mode", mode},
 		{"Access VLAN", vlan}, {"Speed", speed}, {"MAC", d.MAC}, {"Errors", errs},
 		{"Input rate", d.InputRate}, {"Output rate", d.OutputRate},
 	})
@@ -199,4 +209,13 @@ func inlineCode(s string) string {
 		parts[i] = theme.Key.Render(parts[i])
 	}
 	return strings.Join(parts, "")
+}
+
+// Warnings renders cautions shown next to a change confirmation.
+func Warnings(ws []string) string {
+	var lines []string
+	for _, w := range ws {
+		lines = append(lines, theme.Caution.Render("⚠ "+w))
+	}
+	return strings.Join(lines, "\n")
 }

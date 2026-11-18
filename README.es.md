@@ -336,7 +336,7 @@ lazynet está pensado para que cualquiera del equipo pueda usarlo sin riesgo. La
 
 1. El nombre del puerto se normaliza y se valida estrictamente, así que una entrada como `1/0/1;reload` se rechaza.
 2. Primero se hacen chequeos de solo lectura:
-   - `show interfaces <puerto> switchport` rechaza puertos trunk y dinámicos;
+   - `show interfaces <puerto> switchport` rechaza los puertos configurados como trunk o que operan como trunk, incluido un trunk negociado con DTP. Los puertos en modo `dynamic auto` o `dynamic desirable` (el valor por defecto en Catalyst) se pueden cambiar mientras estén caídos o funcionando como access: solo se cambia la VLAN de acceso, y la confirmación advierte que el puerto sigue negociando;
    - `show vlan brief` confirma que la VLAN exista y esté activa;
    - las VLANs reservadas se rechazan.
 3. lazynet muestra el equipo, el puerto, la VLAN actual y la nueva, y los comandos **exactos**. Luego espera una `y` explícita. `Enter` nunca aprueba un cambio.

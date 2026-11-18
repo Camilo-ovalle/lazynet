@@ -312,7 +312,7 @@ lazynet is meant to be safe to hand to anyone on a team. Its guarantees are enfo
 **The one change lazynet can make** is an access-VLAN change on a Catalyst switch:
 
 1. The port name is normalized and strictly validated, so input like `1/0/1;reload` is rejected.
-2. Read-only checks run first. `show interfaces <port> switchport` refuses trunk and dynamic ports. `show vlan brief` confirms the VLAN exists and is active, and reserved VLANs are refused.
+2. Read-only checks run first. `show interfaces <port> switchport` refuses ports configured as trunk or operating as one, including a trunk negotiated with DTP. Ports in `dynamic auto` or `dynamic desirable` mode (the Catalyst default) can be changed while they are down or running as access ports: only the access VLAN is set, and the confirmation warns that the port keeps negotiating. `show vlan brief` confirms the VLAN exists and is active, and reserved VLANs are refused.
 3. lazynet shows the device, the port, the current and target VLAN, and the **exact** commands. It then waits for an explicit `y`. `Enter` alone never approves a change.
 4. Only the lines you confirmed can be sent. The TUI re-checks the port right before applying; if anything changed since you reviewed it, nothing is sent.
 5. lazynet reads the port back to verify the change.

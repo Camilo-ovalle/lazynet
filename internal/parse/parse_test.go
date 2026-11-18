@@ -40,15 +40,31 @@ func TestInterfaces(t *testing.T) {
 func TestSwitchportAndVlans(t *testing.T) {
 	d := dev("catalyst")
 	sp, ok := ParseSwitchport(d.Exec("show interfaces Gi1/0/1 switchport"))
-	if !ok || sp.IsTrunk() || sp.AccessVlan != 10 || sp.VlanName != "DATA" {
+	if !ok || sp.Mode() != "access" || sp.Dynamic() || sp.OperatingTrunk() || sp.AccessVlan != 10 || sp.VlanName != "DATA" {
 		t.Fatalf("access: %+v", sp)
 	}
 	tr, _ := ParseSwitchport(d.Exec("show interfaces Te1/1/1 switchport"))
-	if !tr.IsTrunk() {
+	if tr.Mode() != "trunk" || !tr.ConfiguredTrunk() || !tr.OperatingTrunk() {
 		t.Fatalf("trunk: %+v", tr)
 	}
-	if (Switchport{AdminMode: "dynamic auto", OperMode: "static access"}).IsTrunk() == false {
-		t.Fatal("dynamic modes must count as trunk-capable")
+	// A dynamic port is not a trunk: its operational mode says what it does.
+	// Field regression: "dynamic auto" ports that were down were shown as
+	// trunks, and their access VLAN was hidden.
+	for port, want := range map[string]Switchport{
+		"Gi1/0/41": {AdminMode: "dynamic auto", OperMode: "down", AccessVlan: 999, VlanName: "PARKING"},
+		"Gi1/0/38": {AdminMode: "dynamic auto", OperMode: "static access", AccessVlan: 10, VlanName: "DATA"},
+		"Gi1/0/39": {AdminMode: "dynamic desirable", OperMode: "trunk", AccessVlan: 10, VlanName: "DATA"},
+	} {
+		got, ok := ParseSwitchport(d.Exec("show interfaces " + port + " switchport"))
+		if !ok || got != want || !got.Dynamic() || got.ConfiguredTrunk() || got.Mode() != want.AdminMode {
+			t.Fatalf("%s: %+v, want %+v", port, got, want)
+		}
+		if got.OperatingTrunk() != (want.OperMode == "trunk") {
+			t.Fatalf("%s: OperatingTrunk = %v", port, got.OperatingTrunk())
+		}
+	}
+	if !(Switchport{AdminMode: "trunk", OperMode: "trunk (member of bundle Po1)"}).OperatingTrunk() {
+		t.Fatal("a trunk bundle member operates as a trunk")
 	}
 	vl := ParseVlanBrief(d.Exec("show vlan brief"))
 	if !vl[110].Usable() || vl[110].Name != "PRINTERS" || vl[1002].Usable() {

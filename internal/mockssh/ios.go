@@ -222,9 +222,14 @@ func (d *Device) runningConfig(now time.Time) string {
 		if p.Desc != "" {
 			fmt.Fprintf(&b, " description %s\n", p.Desc)
 		}
-		if p.Trunk {
+		switch {
+		case p.Trunk:
 			b.WriteString(" switchport mode trunk\n")
-		} else {
+		case p.Mode == "dynamic auto": // the default: not shown
+			fmt.Fprintf(&b, " switchport access vlan %d\n", p.Vlan)
+		case p.Mode != "":
+			fmt.Fprintf(&b, " switchport access vlan %d\n switchport mode %s\n", p.Vlan, p.Mode)
+		default:
 			fmt.Fprintf(&b, " switchport access vlan %d\n switchport mode access\n", p.Vlan)
 		}
 		b.WriteString("!\n")
@@ -233,11 +238,17 @@ func (d *Device) runningConfig(now time.Time) string {
 }
 
 func (d *Device) switchport(p *Port) string {
-	adm, op := "static access", "static access"
-	if p.Trunk {
-		adm, op = "trunk", "trunk"
+	adm, op, nego, encap := "static access", "static access", "Off", "native"
+	switch {
+	case p.Trunk:
+		adm, nego = "trunk", "On"
+	case p.Mode != "":
+		adm, nego = p.Mode, "On"
 	}
-	if !p.Up && !p.Trunk {
+	switch {
+	case p.operTrunk():
+		op, encap = "trunk", "dot1q"
+	case !p.Up:
 		op = "down"
 	}
 	name := d.vlans[p.Vlan]
@@ -249,8 +260,8 @@ Switchport: Enabled
 Administrative Mode: %s
 Operational Mode: %s
 Administrative Trunking Encapsulation: dot1q
-Operational Trunking Encapsulation: native
-Negotiation of Trunking: Off
+Operational Trunking Encapsulation: %s
+Negotiation of Trunking: %s
 Access Mode VLAN: %d (%s)
 Trunking Native Mode VLAN: 1 (default)
 Administrative Native VLAN tagging: enabled
@@ -264,7 +275,7 @@ Capture VLANs Allowed: ALL
 Protected: false
 Unknown unicast blocked: disabled
 Unknown multicast blocked: disabled
-Appliance trust: none`, p.Short, adm, op, p.Vlan, name)
+Appliance trust: none`, p.Short, adm, op, encap, nego, p.Vlan, name)
 }
 
 // portState is what every interface format needs from a port.

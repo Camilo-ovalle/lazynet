@@ -96,7 +96,7 @@ These rules are the point of the project. Do not weaken them, and do not add way
    - There is no `--yes` flag, and none should be added.
 3. **VLAN change flow (Catalyst only, `platform.VlanChanger`).** The steps run in this order:
    1. The driver validates the port strictly before using it (`cisco.NormalizeInterface`); it is the injection barrier. Never interpolate user input into a command without such a validator.
-   2. Read-only checks: refuse trunk and dynamic ports, refuse VLANs that don't exist or aren't active, refuse reserved ranges.
+   2. Read-only checks: refuse ports configured as trunk or operating as one (including a trunk negotiated with DTP), bundle members and any mode lazynet doesn't know; refuse VLANs that don't exist or aren't active, refuse reserved ranges. Static access ports and `dynamic auto`/`dynamic desirable` ports that are down or running as access may be changed: only `switchport access vlan X` is sent (the port mode is never changed), and dynamic ports get a DTP warning in the confirmation. The maintainer approved this on 2026-11-17 after field tests on C9200L, where `dynamic auto` is the default for access ports.
    3. Show the exact commands and require an explicit `y`. `Enter` must never approve a dangerous change.
    4. Apply the change.
    5. Verify the port on the device.
@@ -130,7 +130,7 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
 ## Testing conventions
 
-- Device behaviour is tested against `internal/mockssh`, which emulates prompts, modes, pipes and stateful ports and VLANs. Platform packages use it through `internal/platform/platformtest`.
+- Device behaviour is tested against `internal/mockssh`, which emulates prompts, modes, pipes and stateful ports and VLANs. The Catalyst emulator includes `dynamic auto` ports (Gi1/0/38 up as access, Gi1/0/41-43 down) and a `dynamic desirable` port that negotiated a trunk (Gi1/0/39), because that is what real C9200L access ports look like. Platform packages use it through `internal/platform/platformtest`.
 - Tests live next to the code they cover: a platform's parsers and driver are tested in its own package; cross-platform behaviour (detection with every probe competing, the reviewed session commands, capabilities) in `internal/platforms/all`; transport tests use a local `testDialect`, because transport cannot import the platforms.
 - To support new real-device output, add it sanitized (no real serials, IPs or hostnames) either as an emulator fixture (`internal/mockssh/fixtures/<platform>/`) or as parser test data (`internal/platforms/<…>/testdata/`), and cover it in that platform's tests.
 - **Never touch the real keyring in tests or in demo mode.** Use `creds.NewManager(0)`.

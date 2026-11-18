@@ -175,6 +175,7 @@ Out of scope for now: restoring backups, a syslog server as a log source, `enabl
 
 ## Status and open items (as of 2026-11-16)
 
+- **v0.2.1** (2026-11-17): fixes `dynamic auto`/`dynamic desirable` ports, found in the first field test of v0.2.0 on a C9200L (shown as trunks, VLAN changes refused). Validate it against CML (IOL-L2) before tagging. It is also the first chance to exercise `lazynet update` and the update banner for real, from v0.2.0.
 - **v0.2.0** (2026-11-16): Palo Alto, `lazynet update`, update and "What's new" banners, APT retired. To be field-tested on real devices; its notes are in `CHANGELOG.md`. The update path itself (`lazynet update`, the banner) can only be exercised for real once v0.2.1 exists.
 - **v0.1.0 is released** (2026-11-16). Its install methods were verified against it: `install.sh`, `go install`, and the .deb, .rpm and tarball downloads.
   Releases: tag `vX.Y.Z` and push it; the release notes come from `CHANGELOG.md`. See `docs/releasing.md`.

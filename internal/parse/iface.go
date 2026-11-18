@@ -97,17 +97,41 @@ type Switchport struct {
 	VlanName   string `json:"vlan_name"`
 }
 
-// IsTrunk is true when the port is (or will become) a trunk. Dynamic modes
-// are treated as trunks because they can negotiate one.
-func (s Switchport) IsTrunk() bool {
-	for _, m := range []string{s.AdminMode, s.OperMode} {
-		m = strings.ToLower(m)
-		if strings.Contains(m, "trunk") || strings.Contains(m, "dynamic") {
-			return true
-		}
+// Switchport modes as Catalyst prints them in `show interfaces X switchport`.
+const (
+	ModeStaticAccess     = "static access"
+	ModeTrunk            = "trunk"
+	ModeDynamicAuto      = "dynamic auto"
+	ModeDynamicDesirable = "dynamic desirable"
+	ModeDown             = "down"
+)
+
+func norm(m string) string { return strings.ToLower(strings.TrimSpace(m)) }
+
+// Mode is a short label of the administrative (configured) mode: "access",
+// "trunk", "dynamic auto", "dynamic desirable" or what the device printed.
+// A dynamic port is not a trunk: it negotiates one with DTP, so its
+// operational mode tells what it is doing now.
+func (s Switchport) Mode() string {
+	if m := norm(s.AdminMode); m != ModeStaticAccess {
+		return m
 	}
-	return false
+	return "access"
 }
+
+// Dynamic reports whether the port negotiates its mode with DTP.
+func (s Switchport) Dynamic() bool {
+	m := norm(s.AdminMode)
+	return m == ModeDynamicAuto || m == ModeDynamicDesirable
+}
+
+// ConfiguredTrunk reports whether the port is configured as a trunk.
+func (s Switchport) ConfiguredTrunk() bool { return norm(s.AdminMode) == ModeTrunk }
+
+// OperatingTrunk reports whether the port is running as a trunk right now
+// (configured as one, or negotiated with DTP). Bundle members print
+// "trunk (member of bundle Po1)".
+func (s Switchport) OperatingTrunk() bool { return strings.HasPrefix(norm(s.OperMode), ModeTrunk) }
 
 var (
 	spAdmin  = regexp.MustCompile(`(?m)^Administrative Mode: (.+)$`)

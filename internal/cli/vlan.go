@@ -63,9 +63,13 @@ func (g *globals) vlanSet(target, port string, id int) error {
 	fmt.Println(render.KV([][2]string{
 		{"Device", fmt.Sprintf("%s (%s)  %s", s.Device.Label(), s.Device.Host, render.PlatformBadge(s.Platform))},
 		{"Port", plan.Port},
+		{"Mode", plan.PortMode},
 		{"Current", fmt.Sprintf("VLAN %d %s", plan.CurrentVlan, theme.Dim.Render(plan.CurrentVlanName))},
 		{"Target", fmt.Sprintf("VLAN %d %s", plan.TargetVlan, theme.Dim.Render(plan.TargetVlanName))},
 	}))
+	if w := render.Warnings(plan.Warnings); w != "" {
+		fmt.Println("\n" + w)
+	}
 	if plan.NoOp {
 		fmt.Println("\n" + theme.Good.Render("Port is already in VLAN "+fmt.Sprint(id)+": nothing to do."))
 		return nil

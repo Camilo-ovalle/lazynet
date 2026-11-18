@@ -89,6 +89,7 @@ store: ~/.local/share/lazynet/backups`,
 
   Device   core-sw1 (10.10.0.11)  CAT
   Port     GigabitEthernet1/0/7
+  Mode     static access
   Current  VLAN 110 PRINTERS
   Target   VLAN 20 VOICE
 

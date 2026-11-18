@@ -157,11 +157,17 @@ type LogResult struct {
 
 // VlanPlan is a validated, ready-to-confirm VLAN change.
 type VlanPlan struct {
-	Port            string `json:"port"`
+	Port string `json:"port"`
+	// PortMode describes the switchport mode, e.g. "dynamic auto,
+	// operational: down".
+	PortMode        string `json:"port_mode,omitempty"`
 	CurrentVlan     int    `json:"current_vlan"`
 	CurrentVlanName string `json:"current_vlan_name"`
 	TargetVlan      int    `json:"target_vlan"`
 	TargetVlanName  string `json:"target_vlan_name"`
+	// Warnings must be shown with the confirmation, e.g. that a dynamic
+	// port keeps negotiating with DTP.
+	Warnings []string `json:"warnings,omitempty"`
 	// NoOp is true when the port is already in the target VLAN.
 	NoOp bool `json:"no_op"`
 	// Change is the request to confirm (nil when NoOp).

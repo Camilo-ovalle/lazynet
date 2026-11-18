@@ -33,10 +33,21 @@ func catalystInit(d *Device) {
 		case i >= 40:
 			v = 999
 		}
-		d.ports = append(d.ports, &Port{
+		p := &Port{
 			Name: fmt.Sprintf("GigabitEthernet1/0/%d", i), Short: fmt.Sprintf("Gi1/0/%d", i),
 			Up: i%5 != 0 && i < 40, Desc: descs[i], Vlan: v, MAC: fmt.Sprintf("706d.15a2.3b%02x", 0x80+i),
-		})
+		}
+		// Ports left at the C9200/C9300 default, "dynamic auto", like
+		// many access ports in the field: down, or up as an access port.
+		switch i {
+		case 41, 42, 43:
+			p.Mode = "dynamic auto"
+		case 38:
+			p.Mode = "dynamic auto"
+		case 39: // up, and negotiated a trunk with its neighbour
+			p.Mode, p.PeerTrunks, p.Desc = "dynamic desirable", true, "AP-Mesh-Bridge"
+		}
+		d.ports = append(d.ports, p)
 	}
 	for i := 1; i <= 2; i++ {
 		d.ports = append(d.ports, &Port{
@@ -84,7 +95,7 @@ func (d *Device) vlanBrief() string {
 	for _, id := range ids {
 		var ports []string
 		for _, p := range d.ports {
-			if !p.Trunk && p.Vlan == id {
+			if !p.operTrunk() && p.Vlan == id {
 				ports = append(ports, p.Short)
 			}
 		}

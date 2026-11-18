@@ -512,3 +512,53 @@ func TestTUIWithoutUpdates(t *testing.T) {
 		t.Fatal("no banner without an update checker (demo mode, dev builds)")
 	}
 }
+
+// Field regression: "dynamic auto" ports (the Catalyst default) were shown
+// as trunks and their VLAN couldn't be changed. They show their real mode,
+// and the change sends only the access VLAN, after a DTP warning.
+func TestTUIDynamicPort(t *testing.T) {
+	h, a := newHarness(t)
+	h.key("enter")
+	h.expect("C9300-48P")
+	h.key("2")
+	h.key("1/0/41")
+	h.key("enter")
+	h.expect("GigabitEthernet1/0/41", "dynamic auto · operational: down", "Access VLAN  999 PARKING")
+	if strings.Contains(h.screen(), "Mode         trunk") {
+		t.Fatal("a dynamic port must not be shown as a trunk")
+	}
+
+	h.key("v")
+	h.send(tea.KeyMsg{Type: tea.KeyCtrlU})
+	h.key("1/0/41")
+	h.key("tab")
+	h.key("110")
+	h.key("enter")
+	h.expect("Confirm configuration change", "Mode     dynamic auto, operational: down",
+		"switchport access vlan 110", "is in dynamic auto mode: it keeps")
+	if strings.Contains(h.screen(), "switchport mode") {
+		t.Fatal("the port mode must not be changed")
+	}
+	h.key("y")
+	h.expect("Save configuration?")
+	h.key("n")
+	h.expect("Access VLAN  110 PRINTERS", "dynamic auto")
+
+	// A dynamic port that negotiated a trunk is refused.
+	h.key("v")
+	h.send(tea.KeyMsg{Type: tea.KeyCtrlU})
+	h.key("1/0/39")
+	h.key("tab")
+	h.key("110")
+	h.key("enter")
+	if !strings.Contains(h.status(), "operating as one") || h.m.(model).modal != nil {
+		t.Fatalf("status: %q", h.status())
+	}
+	var results []string
+	for _, r := range readAudit(t, a) {
+		results = append(results, r.Action+":"+r.Result+":"+r.Port)
+	}
+	if strings.Join(results, ",") != "vlan-change:applied:GigabitEthernet1/0/41" {
+		t.Fatalf("audit = %v", results)
+	}
+}

@@ -489,9 +489,13 @@ func (m model) onPlan(msg planMsg) (tea.Model, tea.Cmd) {
 	body := render.KV([][2]string{
 		{"Device", msg.dev.Label() + " (" + msg.dev.Host + ")"},
 		{"Port", msg.plan.Port},
+		{"Mode", msg.plan.PortMode},
 		{"Current", fmt.Sprintf("VLAN %d %s", msg.plan.CurrentVlan, theme.Dim.Render(msg.plan.CurrentVlanName))},
 		{"Target", fmt.Sprintf("VLAN %d %s", msg.plan.TargetVlan, theme.Dim.Render(msg.plan.TargetVlanName))},
 	}) + "\n\n" + theme.Bold.Render("These commands will be sent:") + "\n" + render.Commands(p.shown)
+	if w := render.Warnings(msg.plan.Warnings); w != "" {
+		body += "\n\n" + w
+	}
 	m.setStatus("review the change", false)
 	m.openModal(newConfirm("Confirm configuration change", body, true, func(m *model, yes bool) tea.Cmd {
 		if !yes {

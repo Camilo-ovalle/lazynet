@@ -13,6 +13,22 @@ new empty `## [Unreleased]` section above it (see `docs/releasing.md`).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-17
+
+### Fixed
+
+- Ports in `dynamic auto` or `dynamic desirable` mode (the Catalyst default)
+  were shown as trunks without their access VLAN. lazynet now shows the
+  configured and operational modes and the access VLAN, as the switch does.
+
+### Changed
+
+- The VLAN of a `dynamic auto` or `dynamic desirable` port can be changed
+  while it is down or running as access. Only the VLAN changes, and the
+  confirmation warns that the port keeps negotiating with DTP.
+- Ports operating as a trunk, negotiated or not, and EtherChannel members are
+  refused.
+
 ## [0.2.0] - 2026-11-16
 
 ### Added

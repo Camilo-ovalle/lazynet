@@ -33,7 +33,17 @@ type Port struct {
 	Trunk bool
 	Vlan  int
 	MAC   string
+	// Mode is the administrative switchport mode of a non-trunk port on the
+	// IOS emulators: "" for static access, or "dynamic auto" (the Catalyst
+	// default) / "dynamic desirable", which negotiate with DTP.
+	Mode string
+	// PeerTrunks makes a dynamic port negotiate a trunk while it is up, as
+	// when its neighbour is a switch or an AP set to trunk.
+	PeerTrunks bool
 }
+
+// operTrunk reports whether the port is operating as a trunk.
+func (p *Port) operTrunk() bool { return p.Trunk || (p.Up && p.Mode != "" && p.PeerTrunks) }
 
 // Device is the emulated device state.
 type Device struct {
